@@ -1,0 +1,10 @@
+.idea
+.vscode
+.bsp
+target
+.scala-build
+
+.DS_Store
+bundle
+.central
+build
