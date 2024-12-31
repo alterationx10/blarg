@@ -1,15 +1,31 @@
-# Samara
+# Blarg!
 
-This is a simple project template to get you started making things
-with [branch](https://github.com/wishingtreedev/branch).
+A Markdown bases static-site-generator.
 
-## Getting Started (IntelliJ IDEA)
+## Rough layout of a website
 
-- Create a repo from this template/pull it down
-- Run `scala-cli setup-ide src` in the root folder
-- Open up the project in IntelliJ IDEA, and it should tell you that it detected a BSP module.
-- Open up the module settings, and import the BSP module.
+- config.json
+- static/
+    - css/js/img
+- templates/
+    - site.html
+    - blog.html
+    - page.html
+- site/
+    - pages/
+        - index.md
+        - about.md
+    - blog/
+        - yyyy-mm-dd-title.md
+        - yyyy
+            - mm
+                - dd
+                    - title.md
 
-## GitHub Actions
 
-There is a `pr-tests.yaml` file in the `.github/workflows` folder that runs the tests on PRs to the `main` branch.
+## Modes / Commands
+
+- build
+- dev
+- gen
+- serve
