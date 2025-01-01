@@ -1,16 +1,16 @@
 package commands.build
 
-import java.nio.file.{Files, Path}
-import scala.util.Try
 import dev.wishingtree.branch.macaroni.fs.PathOps.*
 
-trait ContentLoader {
-  def load(path: Path): Try[String]
-  def loadTemplate(fileName: String): Try[String]
+import java.nio.file.{Files, Path}
 
-  def loadSiteTemplate(): Try[String] = loadTemplate("site.html")
-  def loadBlogTemplate(): Try[String] = loadTemplate("blog.html")
-  def loadPageTemplate(): Try[String] = loadTemplate("page.html")
+trait ContentLoader {
+  def load(path: Path): String
+  def loadTemplate(fileName: String): String
+
+  def loadSiteTemplate(): String = loadTemplate("site.html")
+  def loadBlogTemplate(): String = loadTemplate("blog.html")
+  def loadPageTemplate(): String = loadTemplate("page.html")
 
 }
 
@@ -18,12 +18,12 @@ object ContentLoader {
 
   def apply(root: Path): ContentLoader = new ContentLoader {
 
-    val templates = root / "templates"
+    val templates: Path = root / "templates"
 
-    override def load(path: Path): Try[String] =
-      Try(Files.readString(path))
+    override def load(path: Path): String =
+      Files.readString(path)
 
-    override def loadTemplate(fileName: String): Try[String] =
+    override def loadTemplate(fileName: String): String =
       load(templates / fileName)
   }
 

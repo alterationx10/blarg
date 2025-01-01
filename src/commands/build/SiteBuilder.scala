@@ -1,18 +1,7 @@
 package commands.build
 
 import dev.wishingtree.branch.macaroni.fs.PathOps.*
-import org.commonmark.Extension
-import org.commonmark.ext.autolink.AutolinkExtension
-import org.commonmark.ext.footnotes.FootnotesExtension
-import org.commonmark.ext.front.matter.{
-  YamlFrontMatterExtension,
-  YamlFrontMatterVisitor
-}
-import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension
-import org.commonmark.ext.gfm.tables.TablesExtension
-import org.commonmark.ext.heading.anchor.HeadingAnchorExtension
-import org.commonmark.ext.image.attributes.ImageAttributesExtension
-import org.commonmark.ext.ins.InsExtension
+import org.commonmark.ext.front.matter.YamlFrontMatterVisitor
 import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
 import org.jsoup.Jsoup
@@ -33,46 +22,7 @@ object SiteBuilder {
 
   def apply(root: Path): SiteBuilder = new SiteBuilder {
 
-    val autoLinkExtension: Extension =
-      AutolinkExtension.create()
-
-    val strikethroughExtension: Extension =
-      StrikethroughExtension.create()
-
-    val tablesExtension: Extension =
-      TablesExtension.create()
-
-    val footnotesExtension: Extension =
-      FootnotesExtension.create()
-
-    val headingAnchorExtension: Extension =
-      HeadingAnchorExtension.create()
-
-    val insExtension: Extension =
-      InsExtension.create()
-
-    val fmExtension: Extension =
-      YamlFrontMatterExtension.create()
-
-    val imageAttributesExtension: Extension =
-      ImageAttributesExtension.create()
-
-    val mdParser: Parser =
-      Parser
-        .builder()
-        .extensions(
-          List(
-            autoLinkExtension,
-            strikethroughExtension,
-            tablesExtension,
-            footnotesExtension,
-            headingAnchorExtension,
-            insExtension,
-            fmExtension,
-            imageAttributesExtension
-          ).asJava
-        )
-        .build()
+    val mdParser: Parser = MDParser()
 
     val htmlRenderer: HtmlRenderer =
       HtmlRenderer.builder().build()
@@ -101,13 +51,13 @@ object SiteBuilder {
         template: String,
         elementId: String
     ): Document = {
-      val siteTemplate    = ContentLoader(root).loadSiteTemplate().get
-      val contentTemplate = ContentLoader(root).loadTemplate(template).get
+      val siteTemplate    = ContentLoader(root).loadSiteTemplate()
+      val contentTemplate = ContentLoader(root).loadTemplate(template)
 
       val siteHtml    = Jsoup.parse(siteTemplate)
       val contentHtml = Jsoup.parse(contentTemplate)
 
-      val rawContent    = ContentLoader(root).load(path).get
+      val rawContent    = ContentLoader(root).load(path)
       val parsedContent = mdParser.parse(rawContent)
 
       val visitor     = new YamlFrontMatterVisitor()
@@ -179,9 +129,6 @@ object SiteBuilder {
               _thisBlog / path.relativeTo(_thisRoot)
             )
           else
-            val siteTemplate = ContentLoader(root).loadSiteTemplate().get
-            val blogTemplate = ContentLoader(root).loadBlogTemplate().get
-
             val siteHtml =
               injectHtml(root, path, "blog.html", "blog-content")
 
