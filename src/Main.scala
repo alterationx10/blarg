@@ -1,3 +1,4 @@
+import commands.build.{ContentLoader, SiteBuilder}
 import org.commonmark.node.*
 import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
@@ -50,7 +51,9 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     println {
-      siteDoc.html()
+      val sb = SiteBuilder(wd / "test_site")
+      sb.cleanBuild()
+      sb.copyStatic()
     }
   }
 }
