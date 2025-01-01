@@ -1,6 +1,13 @@
-object Main {
+import commands.build.Build
+import commands.serve.Serve
+import dev.wishingtree.branch.ursula.UrsulaApp
+import dev.wishingtree.branch.ursula.command.Command
 
-  def main(args: Array[String]): Unit = {
-    println("Hello, Branch!")
-  }
+object Main extends UrsulaApp {
+
+  override val commands: Seq[Command] = Seq(
+    Build,
+    Serve
+  )
+
 }
