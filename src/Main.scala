@@ -54,6 +54,7 @@ object Main {
       val sb = SiteBuilder(wd / "test_site")
       sb.cleanBuild()
       sb.copyStatic()
+      sb.parseSite()
     }
   }
 }

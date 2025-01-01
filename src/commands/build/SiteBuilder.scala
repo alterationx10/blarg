@@ -78,12 +78,10 @@ object SiteBuilder {
               pageHtml.html()
             )
         }
-
-      ???
     }
 
     override def parseSite(): Unit = {
-      ???
+      buildPages(root)
     }
 
     override def cleanBuild(): Unit =
