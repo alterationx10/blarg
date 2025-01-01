@@ -26,7 +26,7 @@ object DirFlag extends Flag[Path] {
     "The path to serve files from. Defaults to ./build"
   override val default: Option[Path]                = Some(wd / "build")
   override def parse: PartialFunction[String, Path] = { case str =>
-    Path.of(str)
+    wd / str
   }
 }
 
