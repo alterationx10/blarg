@@ -116,8 +116,76 @@ object SiteBuilder {
         }
     }
 
-    private def buildBlog(root: Path): Unit =
-      ()
+    private def buildBlog(root: Path): Unit = {
+      val _thisRoot  = root / "site" / "blog"
+      val _thisBuild = root.getParent / "build"
+      val _thisBlog  = _thisBuild / "blog"
+
+      Files
+        .walk(_thisRoot)
+        .filter(p => p.toString.endsWith(".md") || Files.isDirectory(p))
+        .sorted(Comparator.naturalOrder())
+        .forEach { path =>
+          if Files.isDirectory(path) then
+            Files.createDirectories(
+              _thisBlog / path.relativeTo(_thisRoot)
+            )
+          else
+            val siteTemplate = ContentLoader(root).loadSiteTemplate().get
+            val blogTemplate = ContentLoader(root).loadBlogTemplate().get
+
+            val siteHtml = Jsoup.parse(siteTemplate)
+            val blogHtml = Jsoup.parse(blogTemplate)
+
+            val rawContent    = ContentLoader(root).load(path).get
+            val parsedContent = mdParser.parse(rawContent)
+
+            val visitor     = new YamlFrontMatterVisitor()
+            parsedContent.accept(visitor)
+            val frontMatter = visitor.getData.asScala.toMap
+
+            blogHtml
+              .getElementById("blog-content")
+              .html(htmlRenderer.render(parsedContent))
+
+            siteHtml
+              .getElementById("site-content")
+              .html(blogHtml.html())
+
+            frontMatter.get("title").foreach { l =>
+              l.asScala.headOption.foreach { title =>
+                siteHtml.title(title)
+              }
+            }
+
+            val fn: String = path
+              .relativeTo(path.getParent)
+              .toString
+              .stripSuffix(".md")
+
+            val destination = path.relativeTo(_thisRoot).getNameCount match {
+              case 1 =>
+                fn match {
+                  case s"$year-$month-$day-$slug" =>
+                    _thisBlog / year / month / day / s"$slug.html"
+                  case _                          =>
+                    _thisBlog / s"$fn.html"
+                }
+              case _ =>
+                _thisBlog / path.relativeTo(_thisRoot).getParent / s"$fn.html"
+            }
+
+            if destination.getNameCount > 0 then
+              Files.createDirectories(destination.getParent)
+
+            Files.writeString(
+              destination,
+              siteHtml.html()
+            )
+
+        }
+
+    }
 
     override def parseSite(): Unit = {
       buildPages(root)
