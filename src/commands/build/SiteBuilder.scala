@@ -2,13 +2,21 @@ package commands.build
 
 import dev.wishingtree.branch.macaroni.fs.PathOps.*
 import org.commonmark.Extension
+import org.commonmark.ext.autolink.AutolinkExtension
+import org.commonmark.ext.footnotes.FootnotesExtension
 import org.commonmark.ext.front.matter.{
   YamlFrontMatterExtension,
   YamlFrontMatterVisitor
 }
+import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension
+import org.commonmark.ext.gfm.tables.TablesExtension
+import org.commonmark.ext.heading.anchor.HeadingAnchorExtension
+import org.commonmark.ext.image.attributes.ImageAttributesExtension
+import org.commonmark.ext.ins.InsExtension
 import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 
 import java.nio.file.{Files, Path}
 import java.util.Comparator
@@ -25,15 +33,43 @@ object SiteBuilder {
 
   def apply(root: Path): SiteBuilder = new SiteBuilder {
 
+    val autoLinkExtension: Extension =
+      AutolinkExtension.create()
+
+    val strikethroughExtension: Extension =
+      StrikethroughExtension.create()
+
+    val tablesExtension: Extension =
+      TablesExtension.create()
+
+    val footnotesExtension: Extension =
+      FootnotesExtension.create()
+
+    val headingAnchorExtension: Extension =
+      HeadingAnchorExtension.create()
+
+    val insExtension: Extension =
+      InsExtension.create()
+
     val fmExtension: Extension =
       YamlFrontMatterExtension.create()
+
+    val imageAttributesExtension: Extension =
+      ImageAttributesExtension.create()
 
     val mdParser: Parser =
       Parser
         .builder()
         .extensions(
           List(
-            fmExtension
+            autoLinkExtension,
+            strikethroughExtension,
+            tablesExtension,
+            footnotesExtension,
+            headingAnchorExtension,
+            insExtension,
+            fmExtension,
+            imageAttributesExtension
           ).asJava
         )
         .build()
@@ -59,6 +95,42 @@ object SiteBuilder {
         }
     }
 
+    private def injectHtml(
+        root: Path,
+        path: Path,
+        template: String,
+        elementId: String
+    ): Document = {
+      val siteTemplate    = ContentLoader(root).loadSiteTemplate().get
+      val contentTemplate = ContentLoader(root).loadTemplate(template).get
+
+      val siteHtml    = Jsoup.parse(siteTemplate)
+      val contentHtml = Jsoup.parse(contentTemplate)
+
+      val rawContent    = ContentLoader(root).load(path).get
+      val parsedContent = mdParser.parse(rawContent)
+
+      val visitor     = new YamlFrontMatterVisitor()
+      parsedContent.accept(visitor)
+      val frontMatter = visitor.getData.asScala.toMap
+
+      contentHtml
+        .getElementById(elementId)
+        .html(htmlRenderer.render(parsedContent))
+
+      siteHtml
+        .getElementById("site-content")
+        .html(contentHtml.html())
+
+      frontMatter.get("title").foreach { l =>
+        l.asScala.headOption.foreach { title =>
+          siteHtml.title(title)
+        }
+      }
+
+      siteHtml
+    }
+
     private def buildPages(root: Path): Unit = {
       val _thisRoot  = root / "site" / "pages"
       val _thisBuild = root.getParent / "build"
@@ -72,32 +144,8 @@ object SiteBuilder {
               _thisBuild / path.relativeTo(_thisRoot)
             )
           else
-            val siteTemplate = ContentLoader(root).loadSiteTemplate().get
-            val pageTemplate = ContentLoader(root).loadPageTemplate().get
-
-            val siteHtml = Jsoup.parse(siteTemplate)
-            val pageHtml = Jsoup.parse(pageTemplate)
-
-            val rawContent    = ContentLoader(root).load(path).get
-            val parsedContent = mdParser.parse(rawContent)
-
-            val visitor     = new YamlFrontMatterVisitor()
-            parsedContent.accept(visitor)
-            val frontMatter = visitor.getData.asScala.toMap
-
-            pageHtml
-              .getElementById("page-content")
-              .html(htmlRenderer.render(parsedContent))
-
-            siteHtml
-              .getElementById("site-content")
-              .html(pageHtml.html())
-
-            frontMatter.get("title").foreach { l =>
-              l.asScala.headOption.foreach { title =>
-                siteHtml.title(title)
-              }
-            }
+            val siteHtml =
+              injectHtml(root, path, "page.html", "page-content")
 
             val fn = path
               .relativeTo(path.getParent)
@@ -134,29 +182,8 @@ object SiteBuilder {
             val siteTemplate = ContentLoader(root).loadSiteTemplate().get
             val blogTemplate = ContentLoader(root).loadBlogTemplate().get
 
-            val siteHtml = Jsoup.parse(siteTemplate)
-            val blogHtml = Jsoup.parse(blogTemplate)
-
-            val rawContent    = ContentLoader(root).load(path).get
-            val parsedContent = mdParser.parse(rawContent)
-
-            val visitor     = new YamlFrontMatterVisitor()
-            parsedContent.accept(visitor)
-            val frontMatter = visitor.getData.asScala.toMap
-
-            blogHtml
-              .getElementById("blog-content")
-              .html(htmlRenderer.render(parsedContent))
-
-            siteHtml
-              .getElementById("site-content")
-              .html(blogHtml.html())
-
-            frontMatter.get("title").foreach { l =>
-              l.asScala.headOption.foreach { title =>
-                siteHtml.title(title)
-              }
-            }
+            val siteHtml =
+              injectHtml(root, path, "blog.html", "blog-content")
 
             val fn: String = path
               .relativeTo(path.getParent)
