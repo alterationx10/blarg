@@ -27,6 +27,8 @@ object SiteBuilder {
     val htmlRenderer: HtmlRenderer =
       HtmlRenderer.builder().build()
 
+    val indexer: Indexer = Indexer(root.getParent / "build")
+
     override def copyStatic(): Unit = Try {
       val _thisBuild = root.getParent / "build"
       Files
@@ -79,7 +81,7 @@ object SiteBuilder {
       }
 
       frontMatter.get("tags").filter(!_.isEmpty).foreach { t =>
-        val tags = t.asScala.mkString(", ")
+        val tags = t.asScala.mkString(",")
         siteHtml
           .head()
           .appendElement("meta")
@@ -193,6 +195,7 @@ object SiteBuilder {
     override def parseSite(): Unit = {
       buildPages(root)
       buildBlog(root)
+      indexer.index()
     }
 
     override def cleanBuild(): Unit =
