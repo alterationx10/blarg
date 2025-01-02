@@ -78,6 +78,35 @@ object SiteBuilder {
         }
       }
 
+      frontMatter.get("tags").filter(!_.isEmpty).foreach { t =>
+        val tags = t.asScala.mkString(", ")
+        siteHtml
+          .head()
+          .appendElement("meta")
+          .attr("name", "keywords")
+          .attr("content", tags)
+      }
+
+      frontMatter.get("author").foreach { a =>
+        a.asScala.headOption.foreach { author =>
+          siteHtml
+            .head()
+            .appendElement("meta")
+            .attr("name", "author")
+            .attr("content", author)
+        }
+      }
+
+      frontMatter.get("description").foreach { d =>
+        d.asScala.headOption.foreach { description =>
+          siteHtml
+            .head()
+            .appendElement("meta")
+            .attr("name", "description")
+            .attr("content", description)
+        }
+      }
+
       siteHtml
     }
 
