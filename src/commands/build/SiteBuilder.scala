@@ -168,6 +168,29 @@ object SiteBuilder {
 
     }
 
+    private def buildSearch(root: Path): Unit = {
+      val _thisBuild = root.getParent / "build"
+
+      val siteTemplate    = ContentLoader(root).loadSiteTemplate()
+      val contentTemplate = ContentLoader(root).loadTemplate("search.html")
+
+      val siteHtml    = Jsoup.parse(siteTemplate)
+      val contentHtml = Jsoup.parse(contentTemplate)
+
+      siteHtml
+        .getElementById("site-content")
+        .html(contentHtml.html())
+
+      siteHtml
+        .title("Search")
+
+      Files.writeString(
+        _thisBuild / "search.html",
+        siteHtml.html()
+      )
+
+    }
+
     private def buildBlog(root: Path): Unit = {
       val _thisRoot  = root / "site" / "blog"
       val _thisBuild = root.getParent / "build"
@@ -220,6 +243,7 @@ object SiteBuilder {
       buildBlog(root)
       indexer.index()
       buildTags(root)
+      buildSearch(root)
     }
 
     override def cleanBuild(): Unit =

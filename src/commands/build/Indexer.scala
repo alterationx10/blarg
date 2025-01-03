@@ -22,7 +22,8 @@ object Indexer {
       content: String,
       href: String,
       published: String,
-      updated: String
+      updated: String,
+      summary: String
   ) derives JsonEncoder
 
   def apply(root: Path): Indexer = new Indexer {
@@ -57,10 +58,11 @@ object Indexer {
               description =
                 html.select("meta[name=description]").attr("content"),
               tags = tags,
-              content = content,
+              content = content.toLowerCase,
               href = "/" + f.relativeTo(_thisBuild).toString,
               published = "", // TODO
-              updated = ""    // TODO
+              updated = "",   // TODO
+              summary = content.take(250) + "..."
             )
           )
 
