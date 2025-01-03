@@ -1,7 +1,7 @@
 package commands.build
 
-import dev.wishingtree.branch.friday.Json.{JsonArray, JsonString}
-import dev.wishingtree.branch.friday.JsonEncoder
+import dev.wishingtree.branch.friday.Json.{JsonArray, JsonObject, JsonString}
+import dev.wishingtree.branch.friday.{Json, JsonEncoder}
 import dev.wishingtree.branch.macaroni.fs.PathOps.*
 import org.jsoup.Jsoup
 
@@ -20,7 +20,9 @@ object Indexer {
       description: String,
       tags: List[String],
       content: String,
-      href: String
+      href: String,
+      published: String,
+      updated: String
   ) derives JsonEncoder
 
   def apply(root: Path): Indexer = new Indexer {
@@ -30,9 +32,6 @@ object Indexer {
       val loader: ContentLoader = ContentLoader(_thisBuild)
 
       val indexedData: mutable.ArrayBuffer[IndexedHtml] =
-        mutable.ArrayBuffer.empty
-
-      val indexedTags: mutable.ArrayBuffer[String] =
         mutable.ArrayBuffer.empty
 
       Files
@@ -49,7 +48,8 @@ object Indexer {
             .select("meta[name=keywords]")
             .attr("content")
             .split(",")
-            .toList.filterNot(_.isBlank)
+            .toList
+            .filterNot(_.isBlank)
 
           indexedData.addOne(
             IndexedHtml(
@@ -58,11 +58,11 @@ object Indexer {
                 html.select("meta[name=description]").attr("content"),
               tags = tags,
               content = content,
-              href = "/" + f.relativeTo(_thisBuild).toString
+              href = "/" + f.relativeTo(_thisBuild).toString,
+              published = "", // TODO
+              updated = ""    // TODO
             )
           )
-
-          indexedTags.addAll(tags)
 
         }
 
@@ -71,9 +71,38 @@ object Indexer {
         JsonArray(indexedData.map(_.toJson).toIndexedSeq).toJsonString
       )
 
+      val tagList = indexedData
+        .flatMap(_.tags)
+        .distinct
+        .sorted
+        .map { tag =>
+          Json.obj(
+            "tag"  -> JsonString(tag),
+            "docs" -> Json.arr(
+              indexedData
+                .filter(_.tags.contains(tag))
+                .map { d =>
+                  Json.obj(
+                    "title"       -> JsonString(d.title),
+                    "description" -> JsonString(d.description),
+                    "href"        -> JsonString(d.href),
+                    "published"   -> JsonString(d.published),
+                    "updated"     -> JsonString(d.updated),
+                    "tags"        -> JsonArray(
+                      d.tags.map(JsonString.apply).toIndexedSeq
+                    ),
+                    "summary"     -> JsonString(d.content.take(250) + "...")
+                  )
+                }
+                .toSeq*
+            )
+          )
+        }
+        .toIndexedSeq
+
       Files.writeString(
         _thisBuild / "tags.json",
-        JsonArray(indexedTags.sorted.distinct.map(JsonString.apply).toIndexedSeq).toJsonString
+        JsonArray(tagList).toJsonString
       )
     }
   }

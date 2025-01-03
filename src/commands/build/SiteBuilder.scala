@@ -81,7 +81,7 @@ object SiteBuilder {
       }
 
       frontMatter.get("tags").filter(!_.isEmpty).foreach { t =>
-        val tags = t.asScala.mkString(",")
+        val tags = t.asScala.map(_.toLowerCase).mkString(",")
         siteHtml
           .head()
           .appendElement("meta")
@@ -145,6 +145,29 @@ object SiteBuilder {
         }
     }
 
+    private def buildTags(root: Path): Unit = {
+      val _thisBuild = root.getParent / "build"
+
+      val siteTemplate    = ContentLoader(root).loadSiteTemplate()
+      val contentTemplate = ContentLoader(root).loadTemplate("tags.html")
+
+      val siteHtml    = Jsoup.parse(siteTemplate)
+      val contentHtml = Jsoup.parse(contentTemplate)
+
+      siteHtml
+        .getElementById("site-content")
+        .html(contentHtml.html())
+
+      siteHtml
+        .title("Tags")
+
+      Files.writeString(
+        _thisBuild / "tags.html",
+        siteHtml.html()
+      )
+
+    }
+
     private def buildBlog(root: Path): Unit = {
       val _thisRoot  = root / "site" / "blog"
       val _thisBuild = root.getParent / "build"
@@ -196,6 +219,7 @@ object SiteBuilder {
       buildPages(root)
       buildBlog(root)
       indexer.index()
+      buildTags(root)
     }
 
     override def cleanBuild(): Unit =

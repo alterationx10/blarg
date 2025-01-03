@@ -1,0 +1,34 @@
+<script defer src="/js/aplinejs.min.js"></script>
+
+<div id="tags-content"
+     x-data="{ tags: [] }"
+     x-init="tags = await (await fetch('/tags.json')).json()"
+>
+    <template x-for="tag in tags">
+        <section x-bind:id="tag.tag">
+            <a x-bind:href="'#'+tag.tag" class="contrast">
+                <h2 x-text="tag.tag"></h2>
+            </a>
+            <template x-for="doc in tag.docs">
+                <article>
+                    <hgroup>
+                        <a x-bind:href="doc.href" class="contrast">
+                            <h3 x-text="doc.title"></h3>
+                        </a>
+                        <p x-text="doc.description"></p>
+                    </hgroup>
+                    <span x-text="doc.summary"></span>
+                    <footer>
+                        All tags: [
+                        <template x-for="t in doc.tags">
+                            <a x-bind:href="'#'+t" class="secondary">
+                                <span x-text="t"></span>
+                            </a>
+                        </template>
+                        ]
+                    </footer>
+                </article>
+            </template>
+        </section>
+    </template>
+</div>
