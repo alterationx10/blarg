@@ -22,15 +22,14 @@ object SiteBuilder {
 
   def apply(root: Path): SiteBuilder = new SiteBuilder {
 
+    val _thisBuild: Path = root.getParent / "build"
+
     val mdParser: Parser = MDParser()
 
     val htmlRenderer: HtmlRenderer =
       HtmlRenderer.builder().build()
 
-    val indexer: Indexer = Indexer(root.getParent / "build")
-
     override def copyStatic(): Unit = Try {
-      val _thisBuild = root.getParent / "build"
       Files
         .walk(root / "static")
         .sorted(Comparator.naturalOrder())
@@ -241,7 +240,10 @@ object SiteBuilder {
     override def parseSite(): Unit = {
       buildPages(root)
       buildBlog(root)
-      indexer.index()
+
+      Indexer.serverIndexer(_thisBuild).index()
+      Indexer.staticIndexer(_thisBuild).index()
+
       buildTags(root)
       buildSearch(root)
     }
