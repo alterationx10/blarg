@@ -6,6 +6,7 @@
 //> using test.dep org.scalameta::munit:1.0.3
 
 //> using dep org.jsoup:jsoup:1.18.3
+//> using dep org.xerial:sqlite-jdbc:3.47.2.0
 
 //> using dep org.commonmark:commonmark:0.24.0
 //> using dep org.commonmark:commonmark-ext-autolink:0.24.0
