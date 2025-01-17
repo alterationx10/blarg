@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark"/>
     <link rel="stylesheet" href="/css/pico.violet.min.css"/>
-    <title>Blarg!</title>
+    <title>
+        {{fm.title}}{{^fm.title}}Blarg!{{/fm.title}}
+    </title>
+    <meta name="keywords" content="{{fm.tags}}">
+    <meta name="author" content="{{fm.author}}">
+    <meta name="description" content="{{fm.description}}">
 </head>
 <body>
 <header class="container">
@@ -24,10 +29,12 @@
     </nav>
 </header>
 <main class="container">
-    <div id="site-content"></div>
+    <div id="site-content">
+        {{>content}}
+    </div>
 </main>
 <footer class="container">
-    <p>&copy; 2025 me! All rights reserved.</p>
+    <p>&copy; {{year}} me! All rights reserved.</p>
 </footer>
 </body>
 </html>

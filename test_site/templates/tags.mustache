@@ -1,0 +1,27 @@
+<div id="tags-content">
+    {{#.}}
+    <section id="{{tag}}">
+        <a href="#{{tag}}" class="contrast">
+            <h2>{{tag}}</h2>
+        </a>
+        {{#docs}}
+            <article>
+                <hgroup>
+                    <a href="{{href}}" class="contrast">
+                        <h3>{{title}}</h3>
+                    </a>
+                    <p>{{description}}</p>
+                </hgroup>
+                <span>{{summary}}</span>
+                <footer>
+                    {{#tags}}
+                        <a href="#{{.}}" class="secondary">
+                            <span>{{.}}</span>
+                        </a>
+                    {{/tags}}
+                </footer>
+            </article>
+        {{/docs}}
+    {{/.}}
+</section>
+</div>

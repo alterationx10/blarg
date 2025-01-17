@@ -8,9 +8,10 @@ trait ContentLoader {
   def load(path: Path): String
   def loadTemplate(fileName: String): String
 
-  def loadSiteTemplate(): String = loadTemplate("site.html")
-  def loadBlogTemplate(): String = loadTemplate("blog.html")
-  def loadPageTemplate(): String = loadTemplate("page.html")
+  def loadSiteTemplate(): String = loadTemplate("site.mustache")
+  def loadBlogTemplate(): String = loadTemplate("blog.mustache")
+  def loadPageTemplate(): String = loadTemplate("page.mustache")
+  def loadTagTemplate(): String  = loadTemplate("tags.mustache")
 
 }
 

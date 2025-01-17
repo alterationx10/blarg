@@ -1,13 +1,15 @@
 package commands.build
 
 import dev.wishingtree.branch.macaroni.fs.PathOps.*
+import dev.wishingtree.branch.mustachio.Stache.Str
+import dev.wishingtree.branch.mustachio.{Mustachio, Stache}
 import org.commonmark.ext.front.matter.YamlFrontMatterVisitor
 import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
 import org.jsoup.Jsoup
-import org.jsoup.nodes.Document
 
 import java.nio.file.{Files, Path}
+import java.time.Year
 import java.util.Comparator
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
@@ -46,71 +48,6 @@ object SiteBuilder {
         }
     }
 
-    private def injectHtml(
-        root: Path,
-        path: Path,
-        template: String,
-        elementId: String
-    ): Document = {
-      val siteTemplate    = ContentLoader(root).loadSiteTemplate()
-      val contentTemplate = ContentLoader(root).loadTemplate(template)
-
-      val siteHtml    = Jsoup.parse(siteTemplate)
-      val contentHtml = Jsoup.parse(contentTemplate)
-
-      val rawContent    = ContentLoader(root).load(path)
-      val parsedContent = mdParser.parse(rawContent)
-
-      val visitor     = new YamlFrontMatterVisitor()
-      parsedContent.accept(visitor)
-      val frontMatter = visitor.getData.asScala.toMap
-
-      contentHtml
-        .getElementById(elementId)
-        .html(htmlRenderer.render(parsedContent))
-
-      siteHtml
-        .getElementById("site-content")
-        .html(contentHtml.html())
-
-      frontMatter.get("title").foreach { l =>
-        l.asScala.headOption.foreach { title =>
-          siteHtml.title(title)
-        }
-      }
-
-      frontMatter.get("tags").filter(!_.isEmpty).foreach { t =>
-        val tags = t.asScala.map(_.toLowerCase).mkString(",")
-        siteHtml
-          .head()
-          .appendElement("meta")
-          .attr("name", "keywords")
-          .attr("content", tags)
-      }
-
-      frontMatter.get("author").foreach { a =>
-        a.asScala.headOption.foreach { author =>
-          siteHtml
-            .head()
-            .appendElement("meta")
-            .attr("name", "author")
-            .attr("content", author)
-        }
-      }
-
-      frontMatter.get("description").foreach { d =>
-        d.asScala.headOption.foreach { description =>
-          siteHtml
-            .head()
-            .appendElement("meta")
-            .attr("name", "description")
-            .attr("content", description)
-        }
-      }
-
-      siteHtml
-    }
-
     private def buildPages(root: Path): Unit = {
       val _thisRoot  = root / "site" / "pages"
       val _thisBuild = root.getParent / "build"
@@ -124,8 +61,16 @@ object SiteBuilder {
               _thisBuild / path.relativeTo(_thisRoot)
             )
           else
-            val siteHtml =
-              injectHtml(root, path, "page.html", "page-content")
+            val siteTemplate = ContentLoader(root).loadSiteTemplate()
+            val pagePartial  = ContentLoader(root).loadPageTemplate()
+
+            val content     = ContentLoader(root).load(path)
+            val contentNode = mdParser.parse(content)
+
+            val visitor     = new YamlFrontMatterVisitor()
+            contentNode.accept(visitor)
+            val frontMatter = visitor.getData.asScala.toMap
+              .map((k, v) => (k -> v.asScala.toList))
 
             val fn = path
               .relativeTo(path.getParent)
@@ -137,9 +82,30 @@ object SiteBuilder {
               case _ => _thisBuild / path.relativeTo(_thisRoot).getParent / fn
             }
 
+            val ctx = BuildContext(
+              page = Some(
+                PageContext(
+                  content = htmlRenderer.render(contentNode),
+                  fm = FrontMatter(frontMatter),
+                  href = "",   // TODO
+                  summary = "" // TODO
+                )
+              )
+            )
+
+            val siteContent = Mustachio.render(
+              siteTemplate,
+              ctx,
+              Some(
+                Stache.obj(
+                  "content" -> Str(pagePartial)
+                )
+              )
+            )
+
             Files.writeString(
               destination,
-              siteHtml.html()
+              siteContent
             )
         }
     }
@@ -148,44 +114,21 @@ object SiteBuilder {
       val _thisBuild = root.getParent / "build"
 
       val siteTemplate    = ContentLoader(root).loadSiteTemplate()
-      val contentTemplate = ContentLoader(root).loadTemplate("tags.html")
+      val contentTemplate = ContentLoader(root).loadTagTemplate()
 
-      val siteHtml    = Jsoup.parse(siteTemplate)
-      val contentHtml = Jsoup.parse(contentTemplate)
-
-      siteHtml
-        .getElementById("site-content")
-        .html(contentHtml.html())
-
-      siteHtml
-        .title("Tags")
+      val siteContent = Mustachio.render(
+        siteTemplate,
+        BuildContext(),
+        Some(
+          Stache.obj(
+            "content" -> Str(contentTemplate)
+          )
+        )
+      )
 
       Files.writeString(
         _thisBuild / "tags.html",
-        siteHtml.html()
-      )
-
-    }
-
-    private def buildSearch(root: Path): Unit = {
-      val _thisBuild = root.getParent / "build"
-
-      val siteTemplate    = ContentLoader(root).loadSiteTemplate()
-      val contentTemplate = ContentLoader(root).loadTemplate("search.html")
-
-      val siteHtml    = Jsoup.parse(siteTemplate)
-      val contentHtml = Jsoup.parse(contentTemplate)
-
-      siteHtml
-        .getElementById("site-content")
-        .html(contentHtml.html())
-
-      siteHtml
-        .title("Search")
-
-      Files.writeString(
-        _thisBuild / "search.html",
-        siteHtml.html()
+        siteContent
       )
 
     }
@@ -205,8 +148,36 @@ object SiteBuilder {
               _thisBlog / path.relativeTo(_thisRoot)
             )
           else
-            val siteHtml =
-              injectHtml(root, path, "blog.html", "blog-content")
+            val siteTemplate = ContentLoader(root).loadSiteTemplate()
+            val blogPartial  = ContentLoader(root).loadBlogTemplate()
+
+            val content     = ContentLoader(root).load(path)
+            val contentNode = mdParser.parse(content)
+
+            val visitor     = new YamlFrontMatterVisitor()
+            contentNode.accept(visitor)
+            val frontMatter = visitor.getData.asScala.toMap
+              .map((k, v) => (k -> v.asScala.toList))
+
+            val ctx         = BuildContext(
+              blog = Some(
+                BlogContext(
+                  content = htmlRenderer.render(contentNode),
+                  fm = FrontMatter(frontMatter),
+                  href = "",   // TODO
+                  summary = "" // TODO
+                )
+              )
+            )
+            val siteContent = Mustachio.render(
+              siteTemplate,
+              ctx,
+              Some(
+                Stache.obj(
+                  "content" -> Str(blogPartial)
+                )
+              )
+            )
 
             val fn: String = path
               .relativeTo(path.getParent)
@@ -230,7 +201,7 @@ object SiteBuilder {
 
             Files.writeString(
               destination,
-              siteHtml.html()
+              siteContent
             )
 
         }
@@ -240,12 +211,8 @@ object SiteBuilder {
     override def parseSite(): Unit = {
       buildPages(root)
       buildBlog(root)
-
-      Indexer.serverIndexer(_thisBuild).index()
-      Indexer.staticIndexer(_thisBuild).index()
-
+//      Indexer.staticIndexer(_thisBuild).index()
       buildTags(root)
-      buildSearch(root)
     }
 
     override def cleanBuild(): Unit =
