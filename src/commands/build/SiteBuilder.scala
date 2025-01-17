@@ -6,11 +6,10 @@ import dev.wishingtree.branch.mustachio.{Mustachio, Stache}
 import org.commonmark.ext.front.matter.YamlFrontMatterVisitor
 import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
-import org.jsoup.Jsoup
 
 import java.nio.file.{Files, Path}
-import java.time.Year
 import java.util.Comparator
+import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
@@ -48,9 +47,13 @@ object SiteBuilder {
         }
     }
 
-    private def buildPages(root: Path): Unit = {
+    private def buildPages(root: Path): List[ContentContext] = {
       val _thisRoot  = root / "site" / "pages"
       val _thisBuild = root.getParent / "build"
+
+      val contentCollection: mutable.ListBuffer[ContentContext] =
+        mutable.ListBuffer.empty
+
       Files
         .walk(_thisRoot)
         .filter(p => p.toString.endsWith(".md") || Files.isDirectory(p))
@@ -82,15 +85,17 @@ object SiteBuilder {
               case _ => _thisBuild / path.relativeTo(_thisRoot).getParent / fn
             }
 
+            val cctx = ContentContext(
+              content = htmlRenderer.render(contentNode),
+              fm = FrontMatter(frontMatter),
+              href = "",   // TODO
+              summary = "" // TODO
+            )
+
+            contentCollection.addOne(cctx)
+
             val ctx = BuildContext(
-              page = Some(
-                PageContext(
-                  content = htmlRenderer.render(contentNode),
-                  fm = FrontMatter(frontMatter),
-                  href = "",   // TODO
-                  summary = "" // TODO
-                )
-              )
+              content = cctx
             )
 
             val siteContent = Mustachio.render(
@@ -108,17 +113,41 @@ object SiteBuilder {
               siteContent
             )
         }
+      contentCollection.toList
+
     }
 
-    private def buildTags(root: Path): Unit = {
+    private def buildTags(
+        root: Path,
+        contentList: List[ContentContext]
+    ): Unit = {
       val _thisBuild = root.getParent / "build"
 
       val siteTemplate    = ContentLoader(root).loadSiteTemplate()
       val contentTemplate = ContentLoader(root).loadTagTemplate()
 
+      val sortedTags =
+        contentList.flatMap(_.fm.tags.getOrElse(List.empty)).distinct.sorted
+
+      val cctx = Stache.Arr(
+        sortedTags.map { t =>
+          Stache.obj(
+            "tag"      -> Stache.Str(t),
+            "articles" -> Stache.Arr(
+              contentList
+                .filter(_.fm.tags.getOrElse(List.empty).contains(t))
+                .sortBy(_.fm.published)
+                .map(ContentContext.given_Conversion_ContentContext_Stache)
+            )
+          )
+        }
+      )
+
       val siteContent = Mustachio.render(
         siteTemplate,
-        BuildContext(),
+        BuildContext(
+          content = cctx
+        ),
         Some(
           Stache.obj(
             "content" -> Str(contentTemplate)
@@ -133,10 +162,13 @@ object SiteBuilder {
 
     }
 
-    private def buildBlog(root: Path): Unit = {
+    private def buildBlog(root: Path): List[ContentContext] = {
       val _thisRoot  = root / "site" / "blog"
       val _thisBuild = root.getParent / "build"
       val _thisBlog  = _thisBuild / "blog"
+
+      val contentCollection: mutable.ListBuffer[ContentContext] =
+        mutable.ListBuffer.empty
 
       Files
         .walk(_thisRoot)
@@ -159,16 +191,18 @@ object SiteBuilder {
             val frontMatter = visitor.getData.asScala.toMap
               .map((k, v) => (k -> v.asScala.toList))
 
-            val ctx         = BuildContext(
-              blog = Some(
-                BlogContext(
-                  content = htmlRenderer.render(contentNode),
-                  fm = FrontMatter(frontMatter),
-                  href = "",   // TODO
-                  summary = "" // TODO
-                )
-              )
+            val cctx = ContentContext(
+              content = htmlRenderer.render(contentNode),
+              fm = FrontMatter(frontMatter),
+              href = "",   // TODO
+              summary = "" // TODO
             )
+            contentCollection.addOne(cctx)
+
+            val ctx = BuildContext(
+              content = cctx
+            )
+
             val siteContent = Mustachio.render(
               siteTemplate,
               ctx,
@@ -205,14 +239,50 @@ object SiteBuilder {
             )
 
         }
+      contentCollection.toList
+
+    }
+
+    private def buildLatest(
+        root: Path,
+        contentList: List[ContentContext]
+    ): Unit = {
+      val _thisBuild = root.getParent / "build"
+
+      val siteTemplate    = ContentLoader(root).loadSiteTemplate()
+      val contentTemplate = ContentLoader(root).loadLatestTemplate()
+
+      val sortedTags =
+        contentList.flatMap(_.fm.tags.getOrElse(List.empty)).distinct.sorted
+
+      val cctx = Stache.Arr(
+        contentList.map(ContentContext.given_Conversion_ContentContext_Stache)
+      )
+
+      val siteContent = Mustachio.render(
+        siteTemplate,
+        BuildContext(
+          content = cctx
+        ),
+        Some(
+          Stache.obj(
+            "content" -> Str(contentTemplate)
+          )
+        )
+      )
+
+      Files.writeString(
+        _thisBuild / "latest.html",
+        siteContent
+      )
 
     }
 
     override def parseSite(): Unit = {
-      buildPages(root)
-      buildBlog(root)
-//      Indexer.staticIndexer(_thisBuild).index()
-      buildTags(root)
+      val pageContent = buildPages(root)
+      val blogContent = buildBlog(root)
+      buildTags(root, pageContent ++ blogContent)
+      buildLatest(root, blogContent.sortBy(_.fm.published).reverse)
     }
 
     override def cleanBuild(): Unit =

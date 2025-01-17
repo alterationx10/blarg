@@ -6,10 +6,9 @@ import dev.wishingtree.branch.mustachio.Stache.{Arr, Null, Str}
 import java.time.{Instant, Year}
 
 case class BuildContext(
+    content: Stache,
     buildTime: String = Instant.now().toString,
-    year: Int = Year.now().getValue,
-    page: Option[PageContext] = Option.empty,
-    blog: Option[BlogContext] = Option.empty
+    year: Int = Year.now().getValue
 )
 
 object BuildContext {
@@ -17,12 +16,7 @@ object BuildContext {
     Stache.obj(
       "buildTime" -> Str(bc.buildTime),
       "year"      -> Str(bc.year.toString),
-      "page"      -> bc.page
-        .map(PageContext.given_Conversion_PageContext_Stache)
-        .getOrElse(Null),
-      "blog"      -> bc.blog
-        .map(BlogContext.given_Conversion_BlogContext_Stache)
-        .getOrElse(Null)
+      "content"   -> bc.content
     )
 
 }
@@ -66,36 +60,19 @@ object FrontMatter {
     )
 }
 
-case class PageContext(
+case class ContentContext(
     content: String,
     fm: FrontMatter,
     href: String,
     summary: String
 )
 
-object PageContext {
-  given Conversion[PageContext, Stache] = pc =>
+object ContentContext {
+  given Conversion[ContentContext, Stache] = pc =>
     Stache.obj(
       "content" -> Str(pc.content),
       "fm"      -> pc.fm,
       "year"    -> Str(Year.now().toString),
       "summary" -> Str(pc.summary)
-    )
-}
-
-case class BlogContext(
-    content: String,
-    fm: FrontMatter,
-    href: String,
-    summary: String
-)
-
-object BlogContext {
-  given Conversion[BlogContext, Stache] = bc =>
-    Stache.obj(
-      "content" -> Str(bc.content),
-      "fm"      -> bc.fm,
-      "year"    -> Str(Year.now().toString),
-      "summary" -> Str(bc.summary)
     )
 }

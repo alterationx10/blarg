@@ -1,10 +1,5 @@
-<div id="tags-content">
+<div>
     {{#content}}
-    <section id="{{tag}}">
-        <a href="#{{tag}}" class="contrast">
-            <h2>{{tag}}</h2>
-        </a>
-        {{#articles}}
             <article>
                 <hgroup>
                     <a href="{{href}}" class="contrast">
@@ -21,7 +16,5 @@
                     {{/fm.tags}}
                 </footer>
             </article>
-        {{/articles}}
     {{/content}}
-</section>
 </div>
