@@ -6,9 +6,8 @@ import dev.wishingtree.branch.ursula.args.{Argument, Flag}
 import dev.wishingtree.branch.ursula.command.Command
 
 import java.nio.file.{Files, Path}
-import java.text.SimpleDateFormat
-import java.time.{Instant, ZoneId}
 import java.time.format.DateTimeFormatter
+import java.time.{Instant, ZoneId}
 
 object DirFlag extends Flag[Path] {
 
@@ -63,7 +62,11 @@ object Gen extends Command {
 
   override def action(args: Seq[String]): Unit = {
 
-    println(s"args: $args")
+    // TODO this could be configurable
+    val dtf = DateTimeFormatter
+      .ofPattern("yyyy-MM-dd")
+      .withZone(ZoneId.systemDefault())
+
     val sitePath = DirFlag.parseFirstArg(args).get
 
     if PageFlag.isPresent(args) then {
@@ -71,36 +74,40 @@ object Gen extends Command {
         sitePath <- DirFlag.parseFirstArg(args)
         newFile  <- PageFlag.parseFirstArg(args)
       } yield {
-        val result = Files.writeString(
-          sitePath / "site" / "pages" / newFile.relativeTo(wd),
-          "Drop in some FM"
-        )
-        println(s"New page created at $result")
+        val destination = sitePath / "site" / "pages" / newFile.relativeTo(wd)
+        if Files.exists(destination) then
+          println(s"Page already exists at $destination")
+        else {
+          println(s"Creating new page at $destination")
+          Files.createDirectories(destination.getParent)
+          val result = Files.writeString(
+            destination,
+            FrontMatter.blank().toContent
+          )
+          println(s"New page created at $result")
+        }
       }
     }
-
-    val dtf = DateTimeFormatter
-      .ofPattern("yyyy-MM-dd")
-      .withZone(ZoneId.systemDefault())
 
     if BlogFlag.isPresent(args) then
       for {
         sitePath <- DirFlag.parseFirstArg(args)
         title    <- BlogFlag.parseFirstArg(args)
       } yield {
-        println(sitePath)
-        println(title)
         val name        = dtf.format(Instant.now()) + "-" + title.toLowerCase.trim
           .replaceAll(" ", "-") + ".md"
         val destination = sitePath / "site" / "blog" / name
         if Files.exists(destination) then
           println(s"Blog post already exists at $destination")
         else {
+          Files.createDirectories(destination.getParent)
           Files.writeString(
             sitePath / "site" / "blog" / name,
             FrontMatter.blank(Some(title)).toContent
           )
-          println(s"New blog post created at $destination")
+          println(
+            s"New blog post created at $destination"
+          )
         }
       }
   }
