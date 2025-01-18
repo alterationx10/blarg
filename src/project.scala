@@ -4,7 +4,7 @@
 
 //> using  options -no-indent -rewrite -source:3.4-migration
 
-//> using test.resourceDir ../test_site
+//> using resourceDir ../new_site
 //> using test.dep org.scalameta::munit:1.0.4
 
 //> using dep org.commonmark:commonmark:0.24.0
