@@ -4,20 +4,26 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark"/>
+    <link rel="icon" href="/img/favicon.png"/>
+    <link rel="mask-icon" href="/img/logo.png" color="white">
     <link rel="stylesheet" href="/css/pico.violet.min.css"/>
+
     <title>
-        {{fm.title}}{{^fm.title}}Blarg!{{/fm.title}}
+        {{content.fm.title}}{{^content.fm.title}}Blarg!{{/content.fm.title}}
     </title>
-    <meta name="keywords" content="{{fm.tags}}">
-    <meta name="author" content="{{fm.author}}">
-    <meta name="description" content="{{fm.description}}">
+    <meta name="keywords" content="{{content.fm.tags}}">
+    <meta name="author" content="{{content.fm.author}}">
+    <meta name="description" content="{{content.fm.description}}">
 </head>
 <body>
 <header class="container">
     <nav>
         <ul>
             <li>
-                <a href="index.html" class="contrast"><strong>Blarg!</strong></a>
+                <a href="index.html" class="contrast">
+                    <img src="/img/logo.png" height="64" width="64" style="vertical-align:middle">
+                    <strong>Blarg!</strong>
+                </a>
             </li>
         </ul>
         <ul>

@@ -3,6 +3,7 @@ package commands.build
 import dev.wishingtree.branch.mustachio.Stache
 import dev.wishingtree.branch.mustachio.Stache.{Arr, Null, Str}
 
+import java.time.temporal.ChronoUnit
 import java.time.{Instant, Year}
 
 case class BuildContext(
@@ -31,6 +32,32 @@ case class FrontMatter(
 )
 
 object FrontMatter {
+
+  extension (fm: FrontMatter) {
+    def toContent: String =
+      val sep = System.lineSeparator()
+      val sb  = new StringBuilder()
+      sb.append("---" + sep)
+      sb.append("title: " + fm.title.getOrElse("") + sep)
+      sb.append("description: " + fm.description.getOrElse("") + sep)
+      sb.append("author: " + fm.author.getOrElse("") + sep)
+      sb.append("published: " + fm.published.getOrElse("") + sep)
+      sb.append("lastUpdated: " + fm.lastUpdated.getOrElse("") + sep)
+      sb.append("tags: " + sep)
+      if fm.tags.exists(_.nonEmpty) then
+        fm.tags.foreach(tag => sb.append("  - " + tag + sep))
+      sb.append("---" + sep)
+      sb.result()
+  }
+
+  def blank(title: Option[String] = Option.empty): FrontMatter = FrontMatter(
+    title,
+    Option.empty,
+    Option.empty,
+    Some(Instant.now().truncatedTo(ChronoUnit.MINUTES)),
+    Some(Instant.now().truncatedTo(ChronoUnit.MINUTES)),
+    Option.empty
+  )
 
   def apply(fm: Map[String, List[String]]): FrontMatter = {
     FrontMatter(

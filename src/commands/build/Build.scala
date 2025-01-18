@@ -11,8 +11,8 @@ object DirFlag extends Flag[Path] {
   override val name: String          = "dir"
   override val shortKey: String      = "d"
   override val description: String   =
-    "The path to build the site from. Defaults to ./site"
-  override val default: Option[Path] = Some(wd / "site")
+    "The path to build the site from. Defaults to ."
+  override val default: Option[Path] = Some(wd)
 
   override def parse: PartialFunction[String, Path] = { case str =>
     wd / str
@@ -22,10 +22,10 @@ object DirFlag extends Flag[Path] {
 object Build extends Command {
 
   override val description: String         = "Build the site"
-  override val usage: String               = "build -d ./site"
+  override val usage: String               = "build -d ./my-site"
   override val examples: Seq[String]       = Seq(
     "build",
-    "build -d ./site"
+    "build -d ./my-site"
   )
   override val trigger: String             = "build"
   override val flags: Seq[Flag[?]]         = Seq(DirFlag)
