@@ -9,6 +9,23 @@ import java.nio.file.{Files, Path}
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneId}
 
+object FrontmatterFlag extends Flag[Path] {
+
+  override val name: String        = "frontmatter"
+  override val shortKey: String    = "fm"
+  override val description: String = "Append frontmatter to an exising file"
+
+  override def parse: PartialFunction[String, Path] = str => wd / str
+
+  override val exclusive: Option[Seq[Flag[?]]] = Some(
+    Seq(
+      PageFlag,
+      BlogFlag
+    )
+  )
+
+}
+
 object DirFlag extends Flag[Path] {
 
   override val name: String          = "dir"
@@ -31,7 +48,9 @@ object BlogFlag extends Flag[String] {
 
   override def parse: PartialFunction[String, String] = identity(_)
 
-  override val exclusive: Option[Seq[Flag[?]]] = Some(Seq(PageFlag))
+  override val exclusive: Option[Seq[Flag[?]]] = Some(
+    Seq(PageFlag, FrontmatterFlag)
+  )
 }
 
 object PageFlag extends Flag[Path] {
@@ -44,7 +63,9 @@ object PageFlag extends Flag[Path] {
 
   override def parse: PartialFunction[String, Path] = str => wd / str
 
-  override val exclusive: Option[Seq[Flag[?]]] = Some(Seq(BlogFlag))
+  override val exclusive: Option[Seq[Flag[?]]] = Some(
+    Seq(BlogFlag, FrontmatterFlag)
+  )
 }
 
 object Gen extends Command {
@@ -57,7 +78,8 @@ object Gen extends Command {
     "gen -d ./site-root -p new-page.md"
   )
   override val trigger: String             = "gen"
-  override val flags: Seq[Flag[?]]         = Seq(DirFlag, BlogFlag, PageFlag)
+  override val flags: Seq[Flag[?]]         =
+    Seq(DirFlag, BlogFlag, PageFlag, FrontmatterFlag)
   override val arguments: Seq[Argument[?]] = Seq.empty
 
   override def action(args: Seq[String]): Unit = {
@@ -89,7 +111,7 @@ object Gen extends Command {
       }
     }
 
-    if BlogFlag.isPresent(args) then
+    if BlogFlag.isPresent(args) then {
       for {
         sitePath <- DirFlag.parseFirstArg(args)
         title    <- BlogFlag.parseFirstArg(args)
@@ -110,6 +132,22 @@ object Gen extends Command {
           )
         }
       }
+    }
+
+    if FrontmatterFlag.isPresent(args) then {
+      for {
+        fmPath <- FrontmatterFlag.parseFirstArg(args)
+      } yield {
+
+        if Files.exists(fmPath) then {
+          // TODO parse and merge
+          val current = Files.readString(fmPath)
+          Files.writeString(fmPath, FrontMatter(Map.empty).toContent + current)
+          println(s"Frontmatter added to $fmPath")
+        } else println(s"File does not exist at $fmPath")
+      }
+    }
+
   }
 
 }
