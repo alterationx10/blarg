@@ -74,6 +74,16 @@ object NewSite extends Command {
       Json.encode(SiteConfig.default).toJsonString // TODO pretty string
     )
 
+    // Add a gitignore
+    Using.resource(
+      getClass.getClassLoader.getResourceAsStream(".gitignore")
+    ) { is =>
+      Files.write(
+        rootDestination / ".gitignore",
+        is.readAllBytes()
+      )
+    }
+
     // Copy templates
     List(
       "blog",
