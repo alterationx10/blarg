@@ -34,7 +34,7 @@ case class FrontMatter(
 object FrontMatter {
 
   extension (fm: FrontMatter) {
-    def toContent: String =
+    def toContent: String = {
       val sep = System.lineSeparator()
       val sb  = new StringBuilder()
       sb.append("---" + sep)
@@ -48,6 +48,7 @@ object FrontMatter {
         fm.tags.foreach(tag => sb.append("  - " + tag + sep))
       sb.append("---" + sep)
       sb.result()
+    }
   }
 
   def blank(title: Option[String] = Option.empty): FrontMatter = FrontMatter(

@@ -45,7 +45,7 @@ object PageFlag extends Flag[Path] {
 
   override def parse: PartialFunction[String, Path] = str => wd / str
 
-  override val exclusive: Option[Seq[Flag[_]]] = Some(Seq(BlogFlag))
+  override val exclusive: Option[Seq[Flag[?]]] = Some(Seq(BlogFlag))
 }
 
 object Gen extends Command {
@@ -58,10 +58,10 @@ object Gen extends Command {
     "gen -d ./site-root -p new-page.md"
   )
   override val trigger: String             = "gen"
-  override val flags: Seq[Flag[_]]         = Seq(DirFlag, BlogFlag, PageFlag)
-  override val arguments: Seq[Argument[_]] = Seq.empty
+  override val flags: Seq[Flag[?]]         = Seq(DirFlag, BlogFlag, PageFlag)
+  override val arguments: Seq[Argument[?]] = Seq.empty
 
-  override def action(args: Seq[String]): Unit =
+  override def action(args: Seq[String]): Unit = {
 
     println(s"args: $args")
     val sitePath = DirFlag.parseFirstArg(args).get
@@ -95,12 +95,14 @@ object Gen extends Command {
         val destination = sitePath / "site" / "blog" / name
         if Files.exists(destination) then
           println(s"Blog post already exists at $destination")
-        else
+        else {
           Files.writeString(
             sitePath / "site" / "blog" / name,
             FrontMatter.blank(Some(title)).toContent
           )
           println(s"New blog post created at $destination")
+        }
       }
+  }
 
 }

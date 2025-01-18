@@ -63,7 +63,7 @@ object SiteBuilder {
             Files.createDirectories(
               _thisBuild / path.relativeTo(_thisRoot)
             )
-          else
+          else {
             val siteTemplate = ContentLoader(root).loadSiteTemplate()
             val pagePartial  = ContentLoader(root).loadPageTemplate()
 
@@ -112,6 +112,7 @@ object SiteBuilder {
               destination,
               siteContent
             )
+          }
         }
       contentCollection.toList
 
@@ -179,7 +180,7 @@ object SiteBuilder {
             Files.createDirectories(
               _thisBlog / path.relativeTo(_thisRoot)
             )
-          else
+          else {
             val siteTemplate = ContentLoader(root).loadSiteTemplate()
             val blogPartial  = ContentLoader(root).loadBlogTemplate()
 
@@ -237,6 +238,7 @@ object SiteBuilder {
               destination,
               siteContent
             )
+          }
 
         }
       contentCollection.toList

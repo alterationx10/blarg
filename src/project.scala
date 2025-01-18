@@ -2,6 +2,8 @@
 //> using jvm 23
 //> using dep dev.wishingtree::branch:0.0.6
 
+//> using  options -no-indent -rewrite -source:3.4-migration
+
 //> using test.resourceDir ../test_site
 //> using test.dep org.scalameta::munit:1.0.4
 
