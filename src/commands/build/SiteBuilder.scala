@@ -88,8 +88,8 @@ object SiteBuilder {
             val cctx = ContentContext(
               content = htmlRenderer.render(contentNode),
               fm = FrontMatter(frontMatter),
-              href = "",   // TODO
-              summary = "" // TODO
+              href = "/" + destination.relativeTo(_thisBuild),
+              summary = "TODO: Summary"
             )
 
             contentCollection.addOne(cctx)
@@ -128,8 +128,13 @@ object SiteBuilder {
       val contentTemplate = ContentLoader(root).loadTagTemplate()
 
       val sortedTags =
-        contentList.flatMap(_.fm.tags.getOrElse(List.empty)).distinct.sorted
+        contentList
+          .flatMap(_.fm.tags.getOrElse(List.empty))
+          .distinct
+          .filterNot(_.isBlank)
+          .sorted
 
+      println(sortedTags)
       val cctx = Stache.Arr(
         sortedTags.map { t =>
           Stache.obj(
@@ -192,28 +197,6 @@ object SiteBuilder {
             val frontMatter = visitor.getData.asScala.toMap
               .map((k, v) => (k -> v.asScala.toList))
 
-            val cctx = ContentContext(
-              content = htmlRenderer.render(contentNode),
-              fm = FrontMatter(frontMatter),
-              href = "",   // TODO
-              summary = "" // TODO
-            )
-            contentCollection.addOne(cctx)
-
-            val ctx = BuildContext(
-              content = cctx
-            )
-
-            val siteContent = Mustachio.render(
-              siteTemplate,
-              ctx,
-              Some(
-                Stache.obj(
-                  "content" -> Str(blogPartial)
-                )
-              )
-            )
-
             val fn: String = path
               .relativeTo(path.getParent)
               .toString
@@ -233,6 +216,28 @@ object SiteBuilder {
 
             if destination.getNameCount > 0 then
               Files.createDirectories(destination.getParent)
+
+            val cctx = ContentContext(
+              content = htmlRenderer.render(contentNode),
+              fm = FrontMatter(frontMatter),
+              href = "/" + destination.relativeTo(_thisBuild),
+              summary = "TODO: Summary"
+            )
+            contentCollection.addOne(cctx)
+
+            val ctx = BuildContext(
+              content = cctx
+            )
+
+            val siteContent = Mustachio.render(
+              siteTemplate,
+              ctx,
+              Some(
+                Stache.obj(
+                  "content" -> Str(blogPartial)
+                )
+              )
+            )
 
             Files.writeString(
               destination,

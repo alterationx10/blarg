@@ -105,7 +105,7 @@ object ContentContext {
     Stache.obj(
       "content" -> Str(pc.content),
       "fm"      -> pc.fm,
-      "year"    -> Str(Year.now().toString),
+      "href"    -> Str(pc.href),
       "summary" -> Str(pc.summary)
     )
 }
