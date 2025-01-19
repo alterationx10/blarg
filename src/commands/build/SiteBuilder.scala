@@ -4,8 +4,10 @@ import dev.wishingtree.branch.macaroni.fs.PathOps.*
 import dev.wishingtree.branch.mustachio.Stache.Str
 import dev.wishingtree.branch.mustachio.{Mustachio, Stache}
 import org.commonmark.ext.front.matter.YamlFrontMatterVisitor
+import org.commonmark.node.{Node, Paragraph}
 import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
+import org.commonmark.renderer.markdown.MarkdownRenderer
 
 import java.nio.file.{Files, Path}
 import java.util.Comparator
@@ -20,6 +22,18 @@ trait SiteBuilder {
 }
 
 object SiteBuilder {
+
+  private def summary(node: Node): String = {
+    val child                 = node.getFirstChild
+    def loop(c: Node): String = {
+      c match {
+        case null         => ""
+        case p: Paragraph => MarkdownRenderer.builder().build().render(p)
+        case n: Node      => loop(n.getNext)
+      }
+    }
+    loop(child)
+  }
 
   def apply(root: Path): SiteBuilder = new SiteBuilder {
 
@@ -89,7 +103,7 @@ object SiteBuilder {
               content = htmlRenderer.render(contentNode),
               fm = FrontMatter(frontMatter),
               href = "/" + destination.relativeTo(_thisBuild),
-              summary = "TODO: Summary"
+              summary = summary(contentNode)
             )
 
             contentCollection.addOne(cctx)
@@ -134,7 +148,6 @@ object SiteBuilder {
           .filterNot(_.isBlank)
           .sorted
 
-      println(sortedTags)
       val cctx = Stache.Arr(
         sortedTags.map { t =>
           Stache.obj(
@@ -221,7 +234,7 @@ object SiteBuilder {
               content = htmlRenderer.render(contentNode),
               fm = FrontMatter(frontMatter),
               href = "/" + destination.relativeTo(_thisBuild),
-              summary = "TODO: Summary"
+              summary = summary(contentNode)
             )
             contentCollection.addOne(cctx)
 
