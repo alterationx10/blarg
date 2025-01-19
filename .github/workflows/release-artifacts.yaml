@@ -1,0 +1,18 @@
+permissions: write-all
+name: Artifact Release
+on:
+  release:
+    types:
+      - created
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: coursier/cache-action@v6.4
+      - uses: VirtusLab/scala-cli-setup@v1.5
+      - run: scala-cli --power package src -o blarg -f --jvm 21
+      - run: zip -r blarg-linux-x64.zip blarg
+      - run: gh release upload ${{ github.event.release.tag_name }} blarg-linux-x64.zip
