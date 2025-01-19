@@ -142,7 +142,7 @@ object Gen extends Command {
         if Files.exists(fmPath) then {
           // TODO parse and merge
           val current = Files.readString(fmPath)
-          Files.writeString(fmPath, FrontMatter(Map.empty).toContent + current)
+          Files.writeString(fmPath, FrontMatter.blank().toContent + current)
           println(s"Frontmatter added to $fmPath")
         } else println(s"File does not exist at $fmPath")
       }

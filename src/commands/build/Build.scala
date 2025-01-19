@@ -5,7 +5,7 @@ import dev.wishingtree.branch.ursula.command.Command
 import dev.wishingtree.branch.macaroni.fs.PathOps.*
 import dev.wishingtree.branch.macaroni.runtimes.BranchExecutors
 
-import java.nio.file.{FileSystems, Path, StandardWatchEventKinds}
+import java.nio.file.{Files, FileSystems, Path, StandardWatchEventKinds}
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.*
 
@@ -49,12 +49,17 @@ object Build extends Command {
 
     if WatchFlag.isPresent(args) then {
       val watcher = FileSystems.getDefault.newWatchService()
-      root.register(
-        watcher,
-        StandardWatchEventKinds.ENTRY_CREATE,
-        StandardWatchEventKinds.ENTRY_MODIFY,
-        StandardWatchEventKinds.ENTRY_DELETE
-      )
+      Files
+        .walk(root)
+        .filter(Files.isDirectory(_))
+        .forEach { path =>
+          path.register(
+            watcher,
+            StandardWatchEventKinds.ENTRY_CREATE,
+            StandardWatchEventKinds.ENTRY_MODIFY,
+            StandardWatchEventKinds.ENTRY_DELETE
+          )
+        }
       val bg      = Future {
         while true do {
           val key    = watcher.take()

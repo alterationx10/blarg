@@ -5,6 +5,7 @@ import dev.wishingtree.branch.mustachio.Stache.{Arr, Null, Str}
 
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, Year}
+import scala.util.Try
 
 case class BuildContext(
     content: Stache,
@@ -65,8 +66,12 @@ object FrontMatter {
       fm.get("title").map(_.mkString),
       fm.get("description").map(_.mkString),
       fm.get("author").map(_.mkString),
-      fm.get("published").map(_.mkString).map(Instant.parse),
-      fm.get("lastUpdated").map(_.mkString).map(Instant.parse),
+      fm.get("published")
+        .map(_.mkString)
+        .flatMap(str => Try(Instant.parse(str)).toOption),
+      fm.get("lastUpdated")
+        .map(_.mkString)
+        .flatMap(str => Try(Instant.parse(str)).toOption),
       fm.get("tags").map(_.mkString(",").split(",").toList)
     )
   }
