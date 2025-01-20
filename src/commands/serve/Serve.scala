@@ -3,11 +3,19 @@ package commands.serve
 import com.sun.net.httpserver.HttpServer
 import dev.wishingtree.branch.macaroni.fs.PathOps.*
 import dev.wishingtree.branch.spider.server.{ContextHandler, FileContextHandler}
-import dev.wishingtree.branch.ursula.args.{Argument, Flag, IntFlag}
+import dev.wishingtree.branch.ursula.args.{Argument, BooleanFlag, Flag, IntFlag}
 import dev.wishingtree.branch.ursula.command.Command
 
 import java.net.InetSocketAddress
 import java.nio.file.Path
+import java.util.concurrent.CountDownLatch
+
+object NoTTYFlag extends BooleanFlag {
+  override val description: String =
+    "Don't wait for user input to exit (when no TTY available)"
+  override val name: String        = "no-tty"
+  override val shortKey: String    = "no-tty"
+}
 
 object PortFlag extends IntFlag {
 
@@ -40,10 +48,12 @@ object Serve extends Command {
     "serve -d ./build"
   )
   override val trigger: String             = "serve"
-  override val flags: Seq[Flag[?]]         = Seq(PortFlag, DirFlag)
+  override val flags: Seq[Flag[?]]         = Seq(PortFlag, DirFlag, NoTTYFlag)
   override val arguments: Seq[Argument[?]] = Seq.empty
 
   override def action(args: Seq[String]): Unit = {
+
+    val latch = new CountDownLatch(1)
 
     val port = PortFlag.parseFirstArg(args).get
     val dir  = DirFlag.parseFirstArg(args).get
@@ -60,8 +70,22 @@ object Serve extends Command {
     server.start()
 
     println(s"Server started at http://localhost:$port")
-    println(s"Press return to exit")
-    scala.io.StdIn.readLine()
+
+    if NoTTYFlag.isPresent(args) then {
+      Runtime.getRuntime.addShutdownHook(new Thread {
+        override def run(): Unit = {
+          latch.countDown()
+        }
+      })
+      println(s"Press Ctrl+C to exit")
+    } else {
+      latch.countDown()
+      println(s"Press return to exit")
+      scala.io.StdIn.readLine()
+    }
+
+    latch.await()
+    // No guarantee this will get printed on --no-tty
     println(s"Shutting down server")
 
   }
