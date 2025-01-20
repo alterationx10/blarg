@@ -27,9 +27,21 @@ A Markdown based static-site-generator.
             - tags.mustache
         - blarg.json
 
-## Modes / Commands
 
-- build
-- dev
-- gen
-- serve
+## Blarg Commands
+
+### new
+
+Sets up a new templates site.
+
+### gen
+
+Generates new pages and blog posts. Also can add frontmatter to the beginning of an existing file.
+
+### build
+
+Builds the site. Can pass -w to watch for changes, and rebuild when they occur.
+
+### serve
+
+Serves the site from the build output directory.
