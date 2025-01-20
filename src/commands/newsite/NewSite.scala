@@ -15,7 +15,7 @@ object DirFlag extends Flag[Path] {
   override val name: String          = "dir"
   override val shortKey: String      = "d"
   override val description: String   =
-    "The path to build the site from. Defaults to ."
+    "The path to create the project folder in. Defaults to ."
   override val default: Option[Path] = Some(wd)
 
   override def parse: PartialFunction[String, Path] = { case str =>
@@ -45,7 +45,7 @@ object NewSite extends Command {
 
   override def action(args: Seq[String]): Unit = {
 
-    val rootDestination: Path = {
+    val projectFolder: Path = {
       DirFlag
         .parseFirstArg(args)
         .map { p =>
@@ -57,21 +57,24 @@ object NewSite extends Command {
         .getOrElse(wd)
     }
 
+    val siteFolder = projectFolder / "site"
+
     // Make all directories
     List(
-      rootDestination / "site",
-      rootDestination / "site" / "blog",
-      rootDestination / "site" / "pages",
-      rootDestination / "static",
-      rootDestination / "static" / "css",
-      rootDestination / "static" / "img",
-      rootDestination / "templates"
+      siteFolder,
+      siteFolder / "blog",
+      siteFolder / "pages",
+      siteFolder / " static",
+      siteFolder / " static" / "js",
+      siteFolder / " static" / "css",
+      siteFolder / "static" / "img",
+      siteFolder / "templates"
     ).foreach(p => Files.createDirectories(p))
 
     // Write a default config
     Files.writeString(
-      rootDestination / "blarg.json",
-      Json.encode(SiteConfig.default).toJsonString // TODO pretty string
+      siteFolder / "blarg.json",
+      Json.encode(SiteConfig.default).toJsonString
     )
 
     // Add a gitignore
@@ -79,7 +82,7 @@ object NewSite extends Command {
       getClass.getClassLoader.getResourceAsStream(".gitignore")
     ) { is =>
       Files.write(
-        rootDestination / ".gitignore",
+        projectFolder / ".gitignore",
         is.readAllBytes()
       )
     }
@@ -94,10 +97,10 @@ object NewSite extends Command {
     ).map(_ + ".mustache")
       .foreach { t =>
         Using.resource(
-          getClass.getClassLoader.getResourceAsStream(s"templates/$t")
+          getClass.getClassLoader.getResourceAsStream(s"site/templates/$t")
         ) { is =>
           Files.write(
-            rootDestination / "templates" / t,
+            siteFolder / "templates" / t,
             is.readAllBytes()
           )
         }
@@ -109,10 +112,10 @@ object NewSite extends Command {
       "img/logo.png"
     ).foreach { a =>
       Using.resource(
-        getClass.getClassLoader.getResourceAsStream(s"static/$a")
+        getClass.getClassLoader.getResourceAsStream(s"site/static/$a")
       ) { is =>
         Files.write(
-          rootDestination / "static" / a,
+          siteFolder / "static" / a,
           is.readAllBytes()
         )
       }

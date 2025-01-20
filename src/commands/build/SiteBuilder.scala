@@ -35,9 +35,9 @@ object SiteBuilder {
     loop(child)
   }
 
-  def apply(root: Path): SiteBuilder = new SiteBuilder {
+  def apply(siteFolder: Path): SiteBuilder = new SiteBuilder {
 
-    val _thisBuild: Path = root.getParent / "build"
+    val _thisBuild: Path = siteFolder.getParent / "build"
 
     val mdParser: Parser = MDParser()
 
@@ -46,42 +46,41 @@ object SiteBuilder {
 
     override def copyStatic(): Unit = Try {
       Files
-        .walk(root / "static")
+        .walk(siteFolder / "static")
         .sorted(Comparator.naturalOrder())
         .forEach { path =>
           if Files.isDirectory(path) then
             Files.createDirectories(
-              _thisBuild / path.relativeTo(root / "static")
+              _thisBuild / path.relativeTo(siteFolder / "static")
             )
           else
             Files.copy(
               path,
-              _thisBuild / path.relativeTo(root / "static")
+              _thisBuild / path.relativeTo(siteFolder / "static")
             )
         }
     }
 
-    private def buildPages(root: Path): List[ContentContext] = {
-      val _thisRoot  = root / "site" / "pages"
-      val _thisBuild = root.getParent / "build"
+    private def buildPages(): List[ContentContext] = {
+      val pagesFolder = siteFolder / "pages"
 
       val contentCollection: mutable.ListBuffer[ContentContext] =
         mutable.ListBuffer.empty
 
       Files
-        .walk(_thisRoot)
+        .walk(pagesFolder)
         .filter(p => p.toString.endsWith(".md") || Files.isDirectory(p))
         .sorted(Comparator.naturalOrder())
         .forEach { path =>
           if Files.isDirectory(path) then
             Files.createDirectories(
-              _thisBuild / path.relativeTo(_thisRoot)
+              _thisBuild / path.relativeTo(pagesFolder)
             )
           else {
-            val siteTemplate = ContentLoader(root).loadSiteTemplate()
-            val pagePartial  = ContentLoader(root).loadPageTemplate()
+            val siteTemplate = ContentLoader(siteFolder).loadSiteTemplate()
+            val pagePartial  = ContentLoader(siteFolder).loadPageTemplate()
 
-            val content     = ContentLoader(root).load(path)
+            val content     = ContentLoader(siteFolder).load(path)
             val contentNode = mdParser.parse(content)
 
             val visitor     = new YamlFrontMatterVisitor()
@@ -94,9 +93,9 @@ object SiteBuilder {
               .toString
               .stripSuffix(".md") + ".html"
 
-            val destination = path.relativeTo(_thisRoot).getNameCount match {
+            val destination = path.relativeTo(pagesFolder).getNameCount match {
               case 1 => _thisBuild / fn
-              case _ => _thisBuild / path.relativeTo(_thisRoot).getParent / fn
+              case _ => _thisBuild / path.relativeTo(pagesFolder).getParent / fn
             }
 
             val cctx = ContentContext(
@@ -133,13 +132,11 @@ object SiteBuilder {
     }
 
     private def buildTags(
-        root: Path,
         contentList: List[ContentContext]
     ): Unit = {
-      val _thisBuild = root.getParent / "build"
 
-      val siteTemplate    = ContentLoader(root).loadSiteTemplate()
-      val contentTemplate = ContentLoader(root).loadTagTemplate()
+      val siteTemplate    = ContentLoader(siteFolder).loadSiteTemplate()
+      val contentTemplate = ContentLoader(siteFolder).loadTagTemplate()
 
       val sortedTags =
         contentList
@@ -181,28 +178,26 @@ object SiteBuilder {
 
     }
 
-    private def buildBlog(root: Path): List[ContentContext] = {
-      val _thisRoot  = root / "site" / "blog"
-      val _thisBuild = root.getParent / "build"
-      val _thisBlog  = _thisBuild / "blog"
+    private def buildBlog(): List[ContentContext] = {
+      val blogFolder = siteFolder / "blog"
 
       val contentCollection: mutable.ListBuffer[ContentContext] =
         mutable.ListBuffer.empty
 
       Files
-        .walk(_thisRoot)
+        .walk(blogFolder)
         .filter(p => p.toString.endsWith(".md") || Files.isDirectory(p))
         .sorted(Comparator.naturalOrder())
         .forEach { path =>
           if Files.isDirectory(path) then
             Files.createDirectories(
-              _thisBlog / path.relativeTo(_thisRoot)
+              _thisBuild / path.relativeTo(blogFolder)
             )
           else {
-            val siteTemplate = ContentLoader(root).loadSiteTemplate()
-            val blogPartial  = ContentLoader(root).loadBlogTemplate()
+            val siteTemplate = ContentLoader(siteFolder).loadSiteTemplate()
+            val blogPartial  = ContentLoader(siteFolder).loadBlogTemplate()
 
-            val content     = ContentLoader(root).load(path)
+            val content     = ContentLoader(siteFolder).load(path)
             val contentNode = mdParser.parse(content)
 
             val visitor     = new YamlFrontMatterVisitor()
@@ -215,16 +210,16 @@ object SiteBuilder {
               .toString
               .stripSuffix(".md")
 
-            val destination = path.relativeTo(_thisRoot).getNameCount match {
+            val destination = path.relativeTo(blogFolder).getNameCount match {
               case 1 =>
                 fn match {
                   case s"$year-$month-$day-$slug" =>
-                    _thisBlog / year / month / day / s"$slug.html"
+                    _thisBuild / year / month / day / s"$slug.html"
                   case _                          =>
-                    _thisBlog / s"$fn.html"
+                    _thisBuild / s"$fn.html"
                 }
               case _ =>
-                _thisBlog / path.relativeTo(_thisRoot).getParent / s"$fn.html"
+                _thisBuild / path.relativeTo(blogFolder).getParent / s"$fn.html"
             }
 
             if destination.getNameCount > 0 then
@@ -264,13 +259,11 @@ object SiteBuilder {
     }
 
     private def buildLatest(
-        root: Path,
         contentList: List[ContentContext]
     ): Unit = {
-      val _thisBuild = root.getParent / "build"
 
-      val siteTemplate    = ContentLoader(root).loadSiteTemplate()
-      val contentTemplate = ContentLoader(root).loadLatestTemplate()
+      val siteTemplate    = ContentLoader(siteFolder).loadSiteTemplate()
+      val contentTemplate = ContentLoader(siteFolder).loadLatestTemplate()
 
       val sortedTags =
         contentList.flatMap(_.fm.tags.getOrElse(List.empty)).distinct.sorted
@@ -299,16 +292,16 @@ object SiteBuilder {
     }
 
     override def parseSite(): Unit = {
-      val pageContent = buildPages(root)
-      val blogContent = buildBlog(root)
-      buildTags(root, pageContent ++ blogContent)
-      buildLatest(root, blogContent.sortBy(_.fm.published).reverse)
+      val pageContent = buildPages()
+      val blogContent = buildBlog()
+      buildTags(pageContent ++ blogContent)
+      buildLatest(blogContent.sortBy(_.fm.published).reverse)
     }
 
     override def cleanBuild(): Unit =
       Try {
         Files
-          .walk(root.getParent / "build")
+          .walk(_thisBuild)
           .sorted(Comparator.reverseOrder()) // Files before Dirs
           .forEach(Files.deleteIfExists(_))
       }

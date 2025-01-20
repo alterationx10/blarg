@@ -20,8 +20,8 @@ object DirFlag extends Flag[Path] {
   override val name: String          = "dir"
   override val shortKey: String      = "d"
   override val description: String   =
-    "The path to build the site from. Defaults to ."
-  override val default: Option[Path] = Some(wd)
+    "The path to containing the site files. Defaults to ./site"
+  override val default: Option[Path] = Some(wd / "site")
 
   override def parse: PartialFunction[String, Path] = { case str =>
     wd / str
@@ -41,8 +41,8 @@ object Build extends Command {
   override val arguments: Seq[Argument[?]] = Seq.empty
 
   override def action(args: Seq[String]): Unit = {
-    val root = DirFlag.parseFirstArg(args).get
-    val sb   = SiteBuilder(root)
+    val siteFolder = DirFlag.parseFirstArg(args).get
+    val sb   = SiteBuilder(siteFolder)
     sb.cleanBuild()
     sb.copyStatic()
     sb.parseSite()
@@ -50,7 +50,7 @@ object Build extends Command {
     if WatchFlag.isPresent(args) then {
       val watcher = FileSystems.getDefault.newWatchService()
       Files
-        .walk(root)
+        .walk(siteFolder)
         .filter(Files.isDirectory(_))
         .forEach { path =>
           path.register(

@@ -75,7 +75,7 @@ object Gen extends Command {
   override val examples: Seq[String]       = Seq(
     "gen -b \"My New Blog Post\"",
     "gen -p ./path/to/new-page.md",
-    "gen -d ./site-root -p new-page.md"
+    "gen -d ./some-project/site -p new-page.md"
   )
   override val trigger: String             = "gen"
   override val flags: Seq[Flag[?]]         =
@@ -96,7 +96,7 @@ object Gen extends Command {
         sitePath <- DirFlag.parseFirstArg(args)
         newFile  <- PageFlag.parseFirstArg(args)
       } yield {
-        val destination = sitePath / "site" / "pages" / newFile.relativeTo(wd)
+        val destination = sitePath / "pages" / newFile.relativeTo(wd)
         if Files.exists(destination) then
           println(s"Page already exists at $destination")
         else {
@@ -118,7 +118,7 @@ object Gen extends Command {
       } yield {
         val name        = dtf.format(Instant.now()) + "-" + title.toLowerCase.trim
           .replaceAll(" ", "-") + ".md"
-        val destination = sitePath / "site" / "blog" / name
+        val destination = sitePath / "blog" / name
         if Files.exists(destination) then
           println(s"Blog post already exists at $destination")
         else {

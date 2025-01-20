@@ -9,7 +9,7 @@ tags:
 
 # A Blog about Stuff
 
-Welcome to my blog about stuff. I hope you enjoy it.
+Welcome to a blog about stuff. Enjoy!
 
 Check [/blog](/blog) for the latest posts.
 
