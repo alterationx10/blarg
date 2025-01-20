@@ -46,7 +46,9 @@ object FrontMatter {
       sb.append("lastUpdated: " + fm.lastUpdated.getOrElse("") + sep)
       sb.append("tags: " + sep)
       if fm.tags.exists(_.nonEmpty) then
-        fm.tags.foreach(tag => sb.append("  - " + tag + sep))
+        fm.tags
+          .getOrElse(List.empty)
+          .foreach(tag => sb.append("  - " + tag + sep))
       sb.append("---" + sep)
       sb.result()
     }

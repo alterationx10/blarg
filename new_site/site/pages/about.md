@@ -7,4 +7,4 @@ lastUpdated:
 tags: 
 ---
 
-This an an about page, to give an overview of the site.
+This is an about page, to give an overview of the site.

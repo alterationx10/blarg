@@ -1,5 +1,6 @@
 package commands.newsite
 
+import commands.build.FrontMatter
 import config.SiteConfig
 import dev.wishingtree.branch.friday.Json
 import dev.wishingtree.branch.macaroni.fs.PathOps.*
@@ -8,6 +9,8 @@ import dev.wishingtree.branch.ursula.command.Command
 import dev.wishingtree.branch.friday.Json.*
 
 import java.nio.file.{Files, Path}
+import java.time.{Instant, ZoneId}
+import java.time.format.DateTimeFormatter
 import scala.util.Using
 
 object DirFlag extends Flag[Path] {
@@ -64,9 +67,9 @@ object NewSite extends Command {
       siteFolder,
       siteFolder / "blog",
       siteFolder / "pages",
-      siteFolder / " static",
-      siteFolder / " static" / "js",
-      siteFolder / " static" / "css",
+      siteFolder / "static",
+      siteFolder / "static" / "js",
+      siteFolder / "static" / "css",
       siteFolder / "static" / "img",
       siteFolder / "templates"
     ).foreach(p => Files.createDirectories(p))
@@ -121,5 +124,38 @@ object NewSite extends Command {
       }
     }
 
+    // copy pages
+    List(
+      "about.md",
+      "index.md"
+    ).foreach { p =>
+      Using.resource(
+        getClass.getClassLoader.getResourceAsStream(s"site/pages/$p")
+      ) { is =>
+        Files.write(
+          siteFolder / "pages" / p,
+          is.readAllBytes()
+        )
+      }
+    }
+
+    // Make a new blog post
+    // TODO this could be configurable
+    val dtf = DateTimeFormatter
+      .ofPattern("yyyy-MM-dd")
+      .withZone(ZoneId.systemDefault())
+
+    val blogTitle = dtf.format(Instant.now()) + "-" + "first-post.md"
+    Files.writeString(
+      siteFolder / "blog" / blogTitle,
+      FrontMatter
+        .blank(Some("First Post"))
+        .copy(
+          tags = Some(List("first-post", "blarg")),
+          description = Some("This is the first post on the site")
+        )
+        .toContent + "#First Post" + System.lineSeparator() + System
+        .lineSeparator() + "This is the first post on the site"
+    )
   }
 }

@@ -11,7 +11,7 @@ tags:
 
 Welcome to a blog about stuff. Enjoy!
 
-Check [/blog](/blog) for the latest posts.
+Check [/latest](/latest) for the latest posts.
 
 Check [/about](/about) for more information about the site.
 

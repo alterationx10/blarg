@@ -42,7 +42,7 @@ object Build extends Command {
 
   override def action(args: Seq[String]): Unit = {
     val siteFolder = DirFlag.parseFirstArg(args).get
-    val sb   = SiteBuilder(siteFolder)
+    val sb         = SiteBuilder(siteFolder)
     sb.cleanBuild()
     sb.copyStatic()
     sb.parseSite()
