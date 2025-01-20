@@ -19,7 +19,7 @@ object DirFlag extends Flag[Path] {
   override val default: Option[Path] = Some(wd)
 
   override def parse: PartialFunction[String, Path] = { case str =>
-    wd / str
+    wd / str.stripPrefix("/")
   }
 }
 
