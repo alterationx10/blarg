@@ -154,7 +154,7 @@ object NewSite extends Command {
           tags = Some(List("first-post", "blarg")),
           description = Some("This is the first post on the site")
         )
-        .toContent + "#First Post" + System.lineSeparator() + System
+        .toContent + "# First Post" + System.lineSeparator() + System
         .lineSeparator() + "This is the first post on the site"
     )
   }
