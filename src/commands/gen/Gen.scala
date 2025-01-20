@@ -61,7 +61,8 @@ object PageFlag extends Flag[Path] {
   override val shortKey: String    = "p"
   override val description: String = "Generate a new page"
 
-  override def parse: PartialFunction[String, Path] = str => wd / str
+  override def parse: PartialFunction[String, Path] = str =>
+    wd / str.stripPrefix("/")
 
   override val exclusive: Option[Seq[Flag[?]]] = Some(
     Seq(BlogFlag, FrontmatterFlag)
@@ -74,8 +75,8 @@ object Gen extends Command {
   override val usage: String               = "gen -b \"My New Blog Post\""
   override val examples: Seq[String]       = Seq(
     "gen -b \"My New Blog Post\"",
-    "gen -p ./path/to/new-page.md",
-    "gen -d ./some-project/site -p new-page.md"
+    "gen -p path/to/new-page.md",
+    "gen -d ./other-site -p new-page.md"
   )
   override val trigger: String             = "gen"
   override val flags: Seq[Flag[?]]         =
@@ -100,7 +101,6 @@ object Gen extends Command {
         if Files.exists(destination) then
           println(s"Page already exists at $destination")
         else {
-          println(s"Creating new page at $destination")
           Files.createDirectories(destination.getParent)
           val result = Files.writeString(
             destination,
@@ -124,7 +124,7 @@ object Gen extends Command {
         else {
           Files.createDirectories(destination.getParent)
           Files.writeString(
-            sitePath / "site" / "blog" / name,
+            destination,
             FrontMatter.blank(Some(title)).toContent
           )
           println(
