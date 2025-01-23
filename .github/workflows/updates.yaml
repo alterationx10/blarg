@@ -73,4 +73,4 @@ jobs:
       - name: Trigger PR Tests
         if: env.changes_exists == 'true'
         run: |
-          gh workflow run pr-tests.yaml || echo "Error running PR tests"
+          gh workflow run pr-tests.yaml --ref dependency-update || echo "Error running PR tests"
