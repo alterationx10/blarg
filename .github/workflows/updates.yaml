@@ -70,7 +70,23 @@ jobs:
             --head dependency-update \
             --base main || echo "Pull request already exists or no changes to push"
 
-      - name: Trigger PR Tests
+      #      - uses: docker/setup-buildx-action@v3 # Uncomment this line for Docker support (e.g. test containers)
+      - name: PR Tests
         if: env.changes_exists == 'true'
         run: |
-          gh workflow run pr-tests.yaml --ref dependency-update || echo "Error running PR tests"
+          gh pr comment "Running PR tests..."
+          if scala-cli --power test src; then
+            echo "tests_passed=true" >> $GITHUB_ENV
+          else
+            echo "tests_passed=true" >> $GITHUB_ENV
+          fi
+
+      - name: Approve PR
+        if: env.tests_passed == 'true'
+        run: |
+          gh pr review --approve --body "PR tests passed"
+
+      - name: Reject PR
+        if: env.tests_passed == 'false'
+        run: |
+          gh pr review --request-changes --body "PR tests failed"
