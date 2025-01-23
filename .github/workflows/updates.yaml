@@ -81,12 +81,14 @@ jobs:
             echo "tests_passed=true" >> $GITHUB_ENV
           fi
 
-      - name: Approve PR
+      - name: Merge PR
         if: env.tests_passed == 'true'
         run: |
-          gh pr review --approve --body "PR tests passed"
+          gh pr comment --body "PR tests passed! Auto merging..."
+          gh pr merge --squash --delete-branch --body "Auto-merged dependency updates"
 
-      - name: Reject PR
+      - name: Close PR
         if: env.tests_passed == 'false'
         run: |
-          gh pr review --request-changes --body "PR tests failed"
+          gh pr comment --body "PR tests failed :cry: Closing PR..."
+          gh pr close --delete-branch --body "PR tests failed"
