@@ -74,7 +74,7 @@ jobs:
       - name: PR Tests
         if: env.changes_exists == 'true'
         run: |
-          gh pr comment "Running PR tests..."
+          gh pr comment --body "Running PR tests..."
           if scala-cli --power test src; then
             echo "tests_passed=true" >> $GITHUB_ENV
           else
