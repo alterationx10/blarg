@@ -36,7 +36,7 @@ jobs:
 
       - name: Track or create branch
         run: |
-          if [ "$branch_exists" = "true" ]; then
+          if [ "${{ env.branch_exists }}" = "true" ]; then
             git fetch origin dependency-update:dependency-update
             git checkout dependency-update
           else
@@ -44,17 +44,24 @@ jobs:
           fi
 
       - name: Update dependencies
+        id: update-deps
         run: |
           scala-cli --power dependency-update src --all
           git config --global user.name "Mark Rudolph"
           git config --global user.email "mark@k8ty.app"
-          git commit -am "Update dependencies" && echo "changes_exists=true" >> $GITHUB_ENV || echo "No changes to commit" && echo "changes_exists=false" >> $GITHUB_ENV
+          if git commit -am "Update dependencies"; then
+            echo "changes_exists=true" >> $GITHUB_ENV
+          else
+            echo "changes_exists=false" >> $GITHUB_ENV
+          fi
 
       - name: Push changes
+        if: env.changes_exists == 'true'
         run: |
           git push -u origin dependency-update
 
       - name: Create a Pull Request
+        if: env.changes_exists == 'true'
         run: |
           gh pr create \
             --title "Dependency Updates" \
@@ -63,9 +70,6 @@ jobs:
             --base main || echo "Pull request already exists or no changes to push"
 
       - name: Trigger PR Tests
+        if: env.changes_exists == 'true'
         run: |
-          if [ "$changes_exists" = "true" ]; then
-            gh workflow run pr-tests.yaml  || echo "Error running PR tests"
-          else
-            echo "No changes; not running PR tests"
-          fi
+          gh workflow run pr-tests.yaml || echo "Error running PR tests"
