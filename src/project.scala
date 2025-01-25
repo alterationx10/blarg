@@ -1,6 +1,6 @@
 //> using scala "3.5.2"
 //> using jvm 23
-//> using dep dev.wishingtree::branch:0.0.6
+//> using dep dev.wishingtree::branch:0.0.7
 
 //> using  options -no-indent -rewrite -source:3.4-migration
 
