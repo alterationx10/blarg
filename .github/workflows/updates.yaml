@@ -46,7 +46,7 @@ jobs:
       - name: Update dependencies
         id: update-deps
         run: |
-          scala-cli --power dependency-update src --all
+          scala-cli --power dependency-update . --all
           git config --global user.name "Mark Rudolph"
           git config --global user.email "mark@k8ty.app"
           if git commit -am "Update dependencies"; then
@@ -76,7 +76,7 @@ jobs:
       - name: PR Tests
         if: env.changes_exists == 'true'
         run: |
-          if scala-cli --power test src; then
+          if scala-cli --power test .; then
             echo "tests_passed=true" >> $GITHUB_ENV
           else
             echo "tests_passed=true" >> $GITHUB_ENV
