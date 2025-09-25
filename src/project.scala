@@ -1,6 +1,6 @@
-//> using scala "3.5.2"
+//> using scala 3
 //> using jvm 23
-//> using dep dev.wishingtree::branch:0.0.9
+//> using dep dev.alteration::branch:0.0.0-SNAPSHOT // Will need 0.0.12 when published
 
 //> using  options -no-indent -rewrite -source:3.4-migration
 

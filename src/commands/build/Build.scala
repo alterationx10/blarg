@@ -1,9 +1,9 @@
 package commands.build
 
-import dev.wishingtree.branch.ursula.args.{Argument, BooleanFlag, Flag}
-import dev.wishingtree.branch.ursula.command.Command
-import dev.wishingtree.branch.macaroni.fs.PathOps.*
-import dev.wishingtree.branch.macaroni.runtimes.BranchExecutors
+import dev.alteration.branch.ursula.args.{Argument, BooleanFlag, Flag}
+import dev.alteration.branch.ursula.command.Command
+import dev.alteration.branch.macaroni.runtimes.BranchExecutors
+import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 
 import java.nio.file.{Files, FileSystems, Path, StandardWatchEventKinds}
 import scala.concurrent.Future

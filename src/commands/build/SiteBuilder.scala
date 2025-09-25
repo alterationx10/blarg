@@ -1,8 +1,8 @@
 package commands.build
 
-import dev.wishingtree.branch.macaroni.fs.PathOps.*
-import dev.wishingtree.branch.mustachio.Stache.Str
-import dev.wishingtree.branch.mustachio.{Mustachio, Stache}
+import dev.alteration.branch.macaroni.extensions.PathExtensions.*
+import dev.alteration.branch.mustachio.Stache.Str
+import dev.alteration.branch.mustachio.{Mustachio, Stache}
 import org.commonmark.ext.front.matter.YamlFrontMatterVisitor
 import org.commonmark.node.{Node, Paragraph}
 import org.commonmark.parser.Parser
@@ -37,7 +37,7 @@ object SiteBuilder {
 
   def apply(siteFolder: Path): SiteBuilder = new SiteBuilder {
 
-    val _thisBuild: Path = siteFolder.getParent / "build"
+    val _thisBuild: Path = siteFolder.getParent.resolve("build")
 
     val mdParser: Parser = MDParser()
 
@@ -46,7 +46,7 @@ object SiteBuilder {
 
     override def copyStatic(): Unit = Try {
       Files
-        .walk(siteFolder / "static")
+        .walk(siteFolder.resolve("static"))
         .sorted(Comparator.naturalOrder())
         .forEach { path =>
           if Files.isDirectory(path) then

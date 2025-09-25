@@ -1,7 +1,7 @@
 package commands.build
 
-import dev.wishingtree.branch.mustachio.Stache
-import dev.wishingtree.branch.mustachio.Stache.{Arr, Null, Str}
+import dev.alteration.branch.mustachio.Stache
+import dev.alteration.branch.mustachio.Stache.{Arr, Null, Str}
 
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, Year}
