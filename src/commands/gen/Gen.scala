@@ -1,9 +1,9 @@
 package commands.gen
 
 import commands.build.FrontMatter
-import dev.wishingtree.branch.macaroni.fs.PathOps.*
-import dev.wishingtree.branch.ursula.args.{Argument, Flag}
-import dev.wishingtree.branch.ursula.command.Command
+import dev.alteration.branch.macaroni.extensions.PathExtensions.*
+import dev.alteration.branch.ursula.args.{Argument, Flag}
+import dev.alteration.branch.ursula.command.Command
 
 import java.nio.file.{Files, Path}
 import java.time.format.DateTimeFormatter

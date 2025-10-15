@@ -1,7 +1,6 @@
 package commands.build
 
-import dev.wishingtree.branch.macaroni.fs.PathOps.*
-
+import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 import java.nio.file.{Files, Path}
 
 trait ContentLoader {

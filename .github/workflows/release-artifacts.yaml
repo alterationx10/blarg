@@ -15,6 +15,6 @@ jobs:
           fetch-depth: 0
       - uses: coursier/cache-action@v6.4
       - uses: VirtusLab/scala-cli-setup@v1.5
-      - run: scala-cli --power package src -o blarg -f --jvm 21
+      - run: scala-cli --power package . -o blarg -f --jvm 21
       - run: zip -r blarg-linux-x64-${{ github.event.release.tag_name }}.zip blarg
       - run: gh release upload ${{ github.event.release.tag_name }} blarg-linux-x64-${{ github.event.release.tag_name }}.zip

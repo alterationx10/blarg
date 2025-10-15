@@ -1,6 +1,6 @@
 package config
 
-import dev.wishingtree.branch.friday.JsonCodec
+import dev.alteration.branch.friday.JsonCodec
 
 case class SiteConfig(
     siteTitle: String

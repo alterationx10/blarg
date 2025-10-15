@@ -2,11 +2,11 @@ package commands.newsite
 
 import commands.build.FrontMatter
 import config.SiteConfig
-import dev.wishingtree.branch.friday.Json
-import dev.wishingtree.branch.macaroni.fs.PathOps.*
-import dev.wishingtree.branch.ursula.args.{Argument, Flag}
-import dev.wishingtree.branch.ursula.command.Command
-import dev.wishingtree.branch.friday.Json.*
+import dev.alteration.branch.friday.Json
+import dev.alteration.branch.macaroni.extensions.PathExtensions.*
+import dev.alteration.branch.ursula.args.{Argument, Flag}
+import dev.alteration.branch.ursula.command.Command
+import dev.alteration.branch.friday.Json.*
 
 import java.nio.file.{Files, Path}
 import java.time.{Instant, ZoneId}
