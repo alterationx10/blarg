@@ -5,7 +5,7 @@ import config.SiteConfig
 import dev.alteration.branch.friday.Json
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 import dev.alteration.branch.ursula.args.{Argument, Flag}
-import dev.alteration.branch.ursula.command.Command
+import dev.alteration.branch.ursula.command.{Command, CommandContext}
 import dev.alteration.branch.friday.Json.*
 
 import java.nio.file.{Files, Path}
@@ -46,18 +46,14 @@ object NewSite extends Command {
   override val flags: Seq[Flag[?]]         = Seq(DirFlag)
   override val arguments: Seq[Argument[?]] = Seq(NameArg)
 
-  override def action(args: Seq[String]): Unit = {
+  override def actionWithContext(ctx: CommandContext): Unit = {
 
     val projectFolder: Path = {
-      DirFlag
-        .parseFirstArg(args)
-        .map { p =>
-          stripFlags(args).headOption.map(NameArg.parse) match {
-            case Some(name) => p / name
-            case None       => p
-          }
-        }
-        .getOrElse(wd)
+      val dir = ctx.flag(DirFlag).getOrElse(wd)
+      ctx.args.headOption.map(NameArg.parse) match {
+        case Some(name) => dir / name
+        case None       => dir
+      }
     }
 
     val siteFolder = projectFolder / "site"

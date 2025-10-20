@@ -1,14 +1,16 @@
 package commands.serve
 
-import com.sun.net.httpserver.HttpServer
+import com.sun.net.httpserver.{HttpExchange, HttpHandler, HttpServer}
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
-import dev.alteration.branch.spider.server.{ContextHandler, FileContextHandler}
+// TODO: Update to use new spider.server API
+// import dev.alteration.branch.spider.server.{ContextHandler, FileContextHandler}
 import dev.alteration.branch.ursula.args.{Argument, BooleanFlag, Flag, IntFlag}
-import dev.alteration.branch.ursula.command.Command
+import dev.alteration.branch.ursula.command.{Command, CommandContext}
 
 import java.net.InetSocketAddress
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import java.util.concurrent.CountDownLatch
+import scala.util.Using
 
 object NoTTYFlag extends BooleanFlag {
   override val description: String =
@@ -51,27 +53,41 @@ object Serve extends Command {
   override val flags: Seq[Flag[?]]         = Seq(PortFlag, DirFlag, NoTTYFlag)
   override val arguments: Seq[Argument[?]] = Seq.empty
 
-  override def action(args: Seq[String]): Unit = {
+  override def actionWithContext(ctx: CommandContext): Unit = {
 
     val latch = new CountDownLatch(1)
 
-    val port = PortFlag.parseFirstArg(args).get
-    val dir  = DirFlag.parseFirstArg(args).get
+    val port = ctx.requiredFlag(PortFlag)
+    val dir  = ctx.requiredFlag(DirFlag)
 
-    given server: HttpServer =
+    val server: HttpServer =
       HttpServer.create(new InetSocketAddress(port), 0)
 
-    val fileHandler =
-      FileContextHandler(dir, filters = Seq(ContextHandler.timingFilter))
+    // TODO: Replace with updated spider.server API when available
+    // For now, use basic file serving
+    val fileHandler = new HttpHandler {
+      override def handle(exchange: HttpExchange): Unit = {
+        val path = exchange.getRequestURI.getPath
+        val file = dir.resolve(if (path == "/") "index.html" else path.stripPrefix("/"))
 
-    ContextHandler
-      .registerHandler(fileHandler)
+        if (Files.exists(file) && Files.isRegularFile(file)) {
+          val bytes = Files.readAllBytes(file)
+          exchange.sendResponseHeaders(200, bytes.length)
+          Using.resource(exchange.getResponseBody)(_.write(bytes))
+        } else {
+          val notFound = "404 Not Found".getBytes
+          exchange.sendResponseHeaders(404, notFound.length)
+          Using.resource(exchange.getResponseBody)(_.write(notFound))
+        }
+      }
+    }
 
+    server.createContext("/", fileHandler)
     server.start()
 
     println(s"Server started at http://localhost:$port")
 
-    if NoTTYFlag.isPresent(args) then {
+    if ctx.booleanFlag(NoTTYFlag) then {
       Runtime.getRuntime.addShutdownHook(new Thread {
         override def run(): Unit = {
           latch.countDown()

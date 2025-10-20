@@ -3,7 +3,7 @@ package commands.gen
 import commands.build.FrontMatter
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 import dev.alteration.branch.ursula.args.{Argument, Flag}
-import dev.alteration.branch.ursula.command.Command
+import dev.alteration.branch.ursula.command.{Command, CommandContext}
 
 import java.nio.file.{Files, Path}
 import java.time.format.DateTimeFormatter
@@ -83,69 +83,54 @@ object Gen extends Command {
     Seq(DirFlag, BlogFlag, PageFlag, FrontmatterFlag)
   override val arguments: Seq[Argument[?]] = Seq.empty
 
-  override def action(args: Seq[String]): Unit = {
+  override def actionWithContext(ctx: CommandContext): Unit = {
 
     // TODO this could be configurable
     val dtf = DateTimeFormatter
       .ofPattern("yyyy-MM-dd")
       .withZone(ZoneId.systemDefault())
 
-    val sitePath = DirFlag.parseFirstArg(args).get
+    val sitePath = ctx.requiredFlag(DirFlag)
 
-    if PageFlag.isPresent(args) then {
-      for {
-        sitePath <- DirFlag.parseFirstArg(args)
-        newFile  <- PageFlag.parseFirstArg(args)
-      } yield {
-        val destination = sitePath / "pages" / newFile.relativeTo(wd)
-        if Files.exists(destination) then
-          println(s"Page already exists at $destination")
-        else {
-          Files.createDirectories(destination.getParent)
-          val result = Files.writeString(
-            destination,
-            FrontMatter.blank().toContent
-          )
-          println(s"New page created at $result")
-        }
+    ctx.flag(PageFlag).foreach { newFile =>
+      val destination = sitePath / "pages" / newFile.relativeTo(wd)
+      if Files.exists(destination) then
+        println(s"Page already exists at $destination")
+      else {
+        Files.createDirectories(destination.getParent)
+        val result = Files.writeString(
+          destination,
+          FrontMatter.blank().toContent
+        )
+        println(s"New page created at $result")
       }
     }
 
-    if BlogFlag.isPresent(args) then {
-      for {
-        sitePath <- DirFlag.parseFirstArg(args)
-        title    <- BlogFlag.parseFirstArg(args)
-      } yield {
-        val name        = dtf.format(Instant.now()) + "-" + title.toLowerCase.trim
-          .replaceAll(" ", "-") + ".md"
-        val destination = sitePath / "blog" / name
-        if Files.exists(destination) then
-          println(s"Blog post already exists at $destination")
-        else {
-          Files.createDirectories(destination.getParent)
-          Files.writeString(
-            destination,
-            FrontMatter.blank(Some(title)).toContent
-          )
-          println(
-            s"New blog post created at $destination"
-          )
-        }
+    ctx.flag(BlogFlag).foreach { title =>
+      val name        = dtf.format(Instant.now()) + "-" + title.toLowerCase.trim
+        .replaceAll(" ", "-") + ".md"
+      val destination = sitePath / "blog" / name
+      if Files.exists(destination) then
+        println(s"Blog post already exists at $destination")
+      else {
+        Files.createDirectories(destination.getParent)
+        Files.writeString(
+          destination,
+          FrontMatter.blank(Some(title)).toContent
+        )
+        println(
+          s"New blog post created at $destination"
+        )
       }
     }
 
-    if FrontmatterFlag.isPresent(args) then {
-      for {
-        fmPath <- FrontmatterFlag.parseFirstArg(args)
-      } yield {
-
-        if Files.exists(fmPath) then {
-          // TODO parse and merge
-          val current = Files.readString(fmPath)
-          Files.writeString(fmPath, FrontMatter.blank().toContent + current)
-          println(s"Frontmatter added to $fmPath")
-        } else println(s"File does not exist at $fmPath")
-      }
+    ctx.flag(FrontmatterFlag).foreach { fmPath =>
+      if Files.exists(fmPath) then {
+        // TODO parse and merge
+        val current = Files.readString(fmPath)
+        Files.writeString(fmPath, FrontMatter.blank().toContent + current)
+        println(s"Frontmatter added to $fmPath")
+      } else println(s"File does not exist at $fmPath")
     }
 
   }

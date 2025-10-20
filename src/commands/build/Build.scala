@@ -1,7 +1,7 @@
 package commands.build
 
 import dev.alteration.branch.ursula.args.{Argument, BooleanFlag, Flag}
-import dev.alteration.branch.ursula.command.Command
+import dev.alteration.branch.ursula.command.{Command, CommandContext}
 import dev.alteration.branch.macaroni.runtimes.BranchExecutors
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 
@@ -40,14 +40,14 @@ object Build extends Command {
   override val flags: Seq[Flag[?]]         = Seq(DirFlag, WatchFlag)
   override val arguments: Seq[Argument[?]] = Seq.empty
 
-  override def action(args: Seq[String]): Unit = {
-    val siteFolder = DirFlag.parseFirstArg(args).get
+  override def actionWithContext(ctx: CommandContext): Unit = {
+    val siteFolder = ctx.requiredFlag(DirFlag)
     val sb         = SiteBuilder(siteFolder)
     sb.cleanBuild()
     sb.copyStatic()
     sb.parseSite()
 
-    if WatchFlag.isPresent(args) then {
+    if ctx.booleanFlag(WatchFlag) then {
       val watcher = FileSystems.getDefault.newWatchService()
       Files
         .walk(siteFolder)
