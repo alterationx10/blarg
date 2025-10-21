@@ -15,7 +15,7 @@ trait BlargPage {
   def template: String
 
   /** Optional layout template to wrap the page content */
-  def layout: Option[String] = Some("layouts/site.mustache")
+  def layout: Option[String] = Some("site.mustache")
 
   /** Optional front matter metadata for SEO and page info */
   def frontMatter: Option[FrontMatter] = None

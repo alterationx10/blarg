@@ -119,7 +119,7 @@ object Markdown {
     new StaticPage {
       def route: String = capturedFrontMatter.slug.getOrElse(pathToRoute(path))
       def template: String = capturedFrontMatter.template.getOrElse("page.mustache")
-      override def layout: Option[String] = capturedFrontMatter.layout.orElse(Some("layouts/site.mustache"))
+      override def layout: Option[String] = capturedFrontMatter.layout.orElse(Some("site.mustache"))
       override def frontMatter: Option[FrontMatter] = Some(capturedFrontMatter)
 
       def render(): Stache = {
