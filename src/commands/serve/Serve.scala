@@ -1,14 +1,11 @@
 package commands.serve
 
-import com.sun.net.httpserver.HttpServer
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
-import dev.alteration.branch.spider.server.{ContextHandler, FileContextHandler}
+import dev.alteration.branch.spider.server.{FileServing, ServerConfig, SpiderServer}
 import dev.alteration.branch.ursula.args.{Argument, BooleanFlag, Flag, IntFlag}
 import dev.alteration.branch.ursula.command.Command
 
-import java.net.InetSocketAddress
 import java.nio.file.Path
-import java.util.concurrent.CountDownLatch
 
 object NoTTYFlag extends BooleanFlag {
   override val description: String =
@@ -53,40 +50,30 @@ object Serve extends Command {
 
   override def action(args: Seq[String]): Unit = {
 
-    val latch = new CountDownLatch(1)
-
     val port = PortFlag.parseFirstArg(args).get
     val dir  = DirFlag.parseFirstArg(args).get
 
-    given server: HttpServer =
-      HttpServer.create(new InetSocketAddress(port), 0)
-
-    val fileHandler =
-      FileContextHandler(dir, filters = Seq(ContextHandler.timingFilter))
-
-    ContextHandler
-      .registerHandler(fileHandler)
-
-    server.start()
+    val server = new SpiderServer(
+      port = port,
+      router = FileServing.createRouter(dir),
+      config = ServerConfig.default
+    )
 
     println(s"Server started at http://localhost:$port")
+    println(s"Serving files from: $dir")
 
     if NoTTYFlag.isPresent(args) then {
-      Runtime.getRuntime.addShutdownHook(new Thread {
-        override def run(): Unit = {
-          latch.countDown()
-        }
-      })
       println(s"Press Ctrl+C to exit")
+      server.start() // Blocking call
     } else {
-      latch.countDown()
       println(s"Press return to exit")
+      // Start server in background thread
+      val serverThread = new Thread(() => server.start())
+      serverThread.start()
       scala.io.StdIn.readLine()
+      println(s"Shutting down server")
+      System.exit(0)
     }
-
-    latch.await()
-    // No guarantee this will get printed on --no-tty
-    println(s"Shutting down server")
 
   }
 }
