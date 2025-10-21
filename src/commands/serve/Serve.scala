@@ -1,19 +1,9 @@
 package commands.serve
 
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
-import dev.alteration.branch.spider.server.{
-  FileServing,
-  ServerConfig,
-  SpiderServer
-}
-import dev.alteration.branch.ursula.args.{
-  Argument,
-  BooleanFlag,
-  Flag,
-  Flags,
-  IntFlag
-}
-import dev.alteration.branch.ursula.command.Command
+import dev.alteration.branch.spider.server.{FileServing, ServerConfig, SpiderServer}
+import dev.alteration.branch.ursula.args.{Argument, BooleanFlag, Flag, Flags, IntFlag}
+import dev.alteration.branch.ursula.command.{Command, CommandContext}
 
 import java.nio.file.Path
 
@@ -51,10 +41,11 @@ object Serve extends Command {
   override val flags: Seq[Flag[?]]         = Seq(PortFlag, DirFlag, NoTTYFlag)
   override val arguments: Seq[Argument[?]] = Seq.empty
 
-  override def action(args: Seq[String]): Unit = {
+  override def actionWithContext(ctx: CommandContext): Unit = {
 
-    val port = PortFlag.parseFirstArg(args).get
-    val dir  = DirFlag.parseFirstArg(args).get
+    val port = ctx.requiredFlag(PortFlag)
+    val dir = ctx.requiredFlag(DirFlag)
+    val noTTY = ctx.booleanFlag(NoTTYFlag)
 
     val server = new SpiderServer(
       port = port,
@@ -65,7 +56,7 @@ object Serve extends Command {
     println(s"Server started at http://localhost:$port")
     println(s"Serving files from: $dir")
 
-    if NoTTYFlag.isPresent(args) then {
+    if noTTY then {
       println(s"Press Ctrl+C to exit")
       server.start() // Blocking call
     } else {
@@ -77,6 +68,11 @@ object Serve extends Command {
       println(s"Shutting down server")
       System.exit(0)
     }
+
+  }
+
+  override def action(args: Seq[String]): Unit = {
+
 
   }
 }
