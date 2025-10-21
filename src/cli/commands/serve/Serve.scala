@@ -28,26 +28,14 @@ object DirFlag extends Flag[Path] {
   }
 }
 
-object StaticFlag extends Flag[Path] {
-
-  override val name: String                         = "static"
-  override val shortKey: String                     = "s"
-  override val description: String                  =
-    "Optional path to static assets directory (served at /static)"
-  override def parse: PartialFunction[String, Path] = { case str =>
-    wd / str
-  }
-}
-
 object Serve extends Command {
 
   override val description: String         = "Start an HTTP server that serves files"
-  override val usage: String               = "serve -p 9000 -d ./build -s ./site/static"
+  override val usage: String               = "serve -p 9000 -d ./build"
   override val examples: Seq[String]       = Seq(
     "serve",
     "serve -p 9000",
     "serve -d ./build",
-    "serve -d ./build -s ./site/static"
   )
   override val trigger: String             = "serve"
   override val flags: Seq[Flag[?]]         = Seq(PortFlag, DirFlag, StaticFlag)
@@ -56,13 +44,12 @@ object Serve extends Command {
   override def actionWithContext(ctx: CommandContext): Unit = {
     val port = ctx.requiredFlag(PortFlag)
     val dir  = ctx.requiredFlag(DirFlag)
-    val staticDir = ctx.flag(StaticFlag)
 
     // Use core BlargServer to serve static files
     BlargServer.serveStatic(
       port = port,
       buildDir = dir,
-      staticDir = staticDir
+      staticDir = None
     )
   }
 }
