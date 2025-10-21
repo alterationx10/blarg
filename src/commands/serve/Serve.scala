@@ -1,41 +1,44 @@
 package commands.serve
 
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
-import dev.alteration.branch.spider.server.{FileServing, ServerConfig, SpiderServer}
-import dev.alteration.branch.ursula.args.{Argument, BooleanFlag, Flag, IntFlag}
+import dev.alteration.branch.spider.server.{
+  FileServing,
+  ServerConfig,
+  SpiderServer
+}
+import dev.alteration.branch.ursula.args.{
+  Argument,
+  BooleanFlag,
+  Flag,
+  Flags,
+  IntFlag
+}
 import dev.alteration.branch.ursula.command.Command
 
 import java.nio.file.Path
 
-object NoTTYFlag extends BooleanFlag {
-  override val description: String =
-    "Don't wait for user input to exit (when no TTY available)"
-  override val name: String        = "no-tty"
-  override val shortKey: String    = "no-tty"
-}
-
-object PortFlag extends IntFlag {
-
-  override val name: String         = "port"
-  override val shortKey: String     = "p"
-  override val description: String  = "The port to serve on. Defaults to 9000"
-  override val default: Option[Int] = Some(9000)
-
-}
-
-object DirFlag extends Flag[Path] {
-
-  override val name: String                         = "dir"
-  override val shortKey: String                     = "d"
-  override val description: String                  =
-    "The path to serve files from. Defaults to ./build"
-  override val default: Option[Path]                = Some(wd / "build")
-  override def parse: PartialFunction[String, Path] = { case str =>
-    wd / str
-  }
-}
-
 object Serve extends Command {
+
+  val NoTTYFlag: BooleanFlag = Flags.boolean(
+    "no-tty",
+    "no-tty",
+    "Don't wait for user input to exit (when no TTY available)"
+  )
+
+  val PortFlag: IntFlag = Flags.int(
+    "port",
+    "p",
+    "The port to serve on. Defaults to 9000",
+    default = Some(9000)
+  )
+
+  val DirFlag: Flag[Path] = Flags.custom[Path](
+    "dir",
+    "d",
+    "The path to serve files from. Defaults to ./build",
+    parser = p => wd / p,
+    default = Some(wd / "build")
+  )
 
   override val description: String         = "Start an HTTP server that serves files"
   override val usage: String               = "serve -p 9000 -d ./build"
