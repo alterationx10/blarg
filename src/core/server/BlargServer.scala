@@ -3,6 +3,7 @@ package blarg.core.server
 import dev.alteration.blarg.core.BlargSite
 import dev.alteration.blarg.core.pages.ServerPage
 import dev.alteration.blarg.core.server.SiteBuilder
+import dev.alteration.branch.macaroni.extensions.*
 import dev.alteration.branch.spider.server.*
 import dev.alteration.branch.spider.server.RequestHandler.given
 import dev.alteration.branch.spider.common.HttpMethod
@@ -86,13 +87,13 @@ object BlargServer {
     val staticDir = site.staticDir
 
     if (Files.exists(buildDir)) {
-      val buildFileHandler = new FileHandler(buildDir)
+      val buildFileHandler = new StaticFileHandler(buildDir)
       server = server.withHttpRoute("", buildFileHandler)
       println(s"📁 Serving static pages from /build")
     }
 
     if (Files.exists(staticDir)) {
-      val staticFileHandler = new FileHandler(staticDir)
+      val staticFileHandler = new StaticFileHandler(staticDir)
       server = server.withHttpRoute("static", staticFileHandler)
       println(s"🎨 Serving static assets from ${staticDir}")
     }
@@ -121,7 +122,7 @@ object BlargServer {
     val router: PartialFunction[(HttpMethod, List[String]), RequestHandler[?, ?]] = {
       // Serve static assets
       case (HttpMethod.GET, "static" :: path) if Files.exists(staticDir) =>
-        new FileHandler(staticDir)
+        new StaticFileHandler(staticDir)
 
       // SSR routes
       case (method, path) if isSSRRoute(site.serverPages, method, path) =>
@@ -129,7 +130,7 @@ object BlargServer {
 
       // Serve pre-built static pages from /build
       case (HttpMethod.GET, path) if Files.exists(buildDir) =>
-        new FileHandler(buildDir)
+        new StaticFileHandler(buildDir)
     }
 
     val server = new SpiderServer(
@@ -200,8 +201,18 @@ object BlargServer {
   ): Unit = {
     println(s"🚀 Starting static file server...")
 
-    val router: PartialFunction[(HttpMethod, List[String]), RequestHandler[?, ?]] =
-      FileServing.createRouter(buildDir)
+    // Create handlers for serving static files
+    val buildHandler = new StaticFileHandler(buildDir)
+
+    val router: PartialFunction[(HttpMethod, List[String]), RequestHandler[?, ?]] = {
+      // Serve static assets from the optional static directory
+      case (HttpMethod.GET, "static" :: path) if staticDir.exists(Files.exists(_)) =>
+        new StaticFileHandler(staticDir.get)
+
+      // Serve all other GET requests from the build directory
+      case (HttpMethod.GET, _) if Files.exists(buildDir) =>
+        buildHandler
+    }
 
     val server = new SpiderServer(
       port = port,
@@ -239,5 +250,81 @@ private class ServerPageHandler(page: ServerPage) extends RequestHandler[Unit, S
 private case class NotFoundHandler() extends RequestHandler[Unit, String] {
   override def handle(request: Request[Unit]): Response[String] = {
     Response(404, "<html><body><h1>404 Not Found</h1></body></html>")
+  }
+}
+
+/**
+ * Handler for serving static files from a directory.
+ */
+private class StaticFileHandler(rootDir: Path) extends RequestHandler[Unit, Array[Byte]] {
+  override def handle(request: Request[Unit]): Response[Array[Byte]] = {
+    val path = request.uri.getPath
+
+    // Remove leading slash and resolve relative to root
+    val relativePath = if (path == "/" || path.isEmpty) {
+      "index.html"
+    } else {
+      path.stripPrefix("/")
+    }
+
+    val filePath = rootDir.resolve(relativePath)
+
+    // Security check: ensure resolved path is within rootDir
+    if (!filePath.normalize().startsWith(rootDir.normalize())) {
+      return Response(403, "Forbidden".getBytes)
+    }
+
+    // Check if file exists
+    if (!Files.exists(filePath)) {
+      // If it's a directory, try index.html
+      if (Files.isDirectory(filePath)) {
+        val indexPath = filePath.resolve("index.html")
+        if (Files.exists(indexPath)) {
+          return serveFile(indexPath)
+        }
+      }
+      return Response(404, "Not Found".getBytes)
+    }
+
+    // If it's a directory, try to serve index.html
+    if (Files.isDirectory(filePath)) {
+      val indexPath = filePath.resolve("index.html")
+      if (Files.exists(indexPath)) {
+        return serveFile(indexPath)
+      } else {
+        return Response(404, "Not Found".getBytes)
+      }
+    }
+
+    serveFile(filePath)
+  }
+
+  private def serveFile(filePath: Path): Response[Array[Byte]] = {
+    val bytes = Files.readAllBytes(filePath)
+    val contentType = guessContentType(filePath)
+    Response(200, bytes).withContentType(contentType)
+  }
+
+  private def guessContentType(filePath: Path): String = {
+    val fileName = filePath.getFileName.toString.toLowerCase
+    fileName match {
+      case f if f.endsWith(".html") || f.endsWith(".htm") => "text/html; charset=utf-8"
+      case f if f.endsWith(".css") => "text/css; charset=utf-8"
+      case f if f.endsWith(".js") => "application/javascript; charset=utf-8"
+      case f if f.endsWith(".json") => "application/json; charset=utf-8"
+      case f if f.endsWith(".xml") => "application/xml; charset=utf-8"
+      case f if f.endsWith(".png") => "image/png"
+      case f if f.endsWith(".jpg") || f.endsWith(".jpeg") => "image/jpeg"
+      case f if f.endsWith(".gif") => "image/gif"
+      case f if f.endsWith(".svg") => "image/svg+xml"
+      case f if f.endsWith(".ico") => "image/x-icon"
+      case f if f.endsWith(".woff") => "font/woff"
+      case f if f.endsWith(".woff2") => "font/woff2"
+      case f if f.endsWith(".ttf") => "font/ttf"
+      case f if f.endsWith(".eot") => "application/vnd.ms-fontobject"
+      case f if f.endsWith(".pdf") => "application/pdf"
+      case f if f.endsWith(".zip") => "application/zip"
+      case _ => "application/octet-stream"
+    }
   }
 }

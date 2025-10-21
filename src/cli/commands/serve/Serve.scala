@@ -38,7 +38,7 @@ object Serve extends Command {
     "serve -d ./build",
   )
   override val trigger: String             = "serve"
-  override val flags: Seq[Flag[?]]         = Seq(PortFlag, DirFlag, StaticFlag)
+  override val flags: Seq[Flag[?]]         = Seq(PortFlag, DirFlag)
   override val arguments: Seq[Argument[?]] = Seq.empty
 
   override def actionWithContext(ctx: CommandContext): Unit = {
