@@ -190,20 +190,18 @@ object BlargServer {
    * Used for Simple Mode (markdown-only sites without Scala code).
    *
    * @param port The port to run on
+   * @param buildDir The directory containing built HTML files
+   * @param staticDir Optional directory for static assets (served at /static)
    */
-  def serveStatic(port: Int = 9000): Unit = {
+  def serveStatic(
+    port: Int = 9000,
+    buildDir: Path = Paths.get("build"),
+    staticDir: Option[Path] = None
+  ): Unit = {
     println(s"🚀 Starting static file server...")
 
-    val buildDir = Paths.get("build")
-    val staticDir = Paths.get("site/static")
-
-    val router: PartialFunction[(HttpMethod, List[String]), RequestHandler[?, ?]] = {
-      case (HttpMethod.GET, "static" :: _) if Files.exists(staticDir) =>
-        new FileHandler(staticDir)
-
-      case (HttpMethod.GET, _) if Files.exists(buildDir) =>
-        new FileHandler(buildDir)
-    }
+    val router: PartialFunction[(HttpMethod, List[String]), RequestHandler[?, ?]] =
+      FileServing.createRouter(buildDir)
 
     val server = new SpiderServer(
       port = port,
@@ -211,7 +209,14 @@ object BlargServer {
       config = ServerConfig.default
     )
 
-    println(s"✅ Serving static site at http://localhost:$port")
+    if (Files.exists(buildDir)) {
+      println(s"📁 Serving files from: $buildDir")
+    }
+    staticDir.filter(Files.exists(_)).foreach { dir =>
+      println(s"🎨 Serving static assets from: $dir")
+    }
+    println()
+    println(s"✅ Server running at http://localhost:$port")
     println("Press Ctrl+C to stop")
 
     server.start()
