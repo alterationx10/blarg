@@ -3,6 +3,8 @@ package blarg.core
 import blarg.core.pages.{StaticPage, ServerPage, WebViewPage}
 import blarg.core.rendering.Markdown
 
+import dev.alteration.branch.spider.webview.WebViewServer
+
 import java.nio.file.{Path, Paths}
 
 /**
@@ -23,9 +25,9 @@ import java.nio.file.{Path, Paths}
  *     ProductPage()
  *   )
  *
- *   def webViewPages = Seq(
- *     DashboardPage()
- *   )
+ *   override def registerWebViewRoutes(server: WebViewServer): WebViewServer = {
+ *     server.withWebViewRoute("/dashboard", DashboardPage())
+ *   }
  *
  *   override def config = SiteConfig(
  *     siteTitle = "My Site",
@@ -43,7 +45,27 @@ trait BlargSite {
   // Page definitions
   def staticPages: Seq[StaticPage] = Seq.empty
   def serverPages: Seq[ServerPage] = Seq.empty
-  def webViewPages: Seq[WebViewPage[?, ?]] = Seq.empty
+
+  /**
+   * Register WebView routes with the server.
+   * Override this method to add WebView pages with their concrete types.
+   *
+   * Example:
+   * {{{
+   * override def registerWebViewRoutes(server: WebViewServer): WebViewServer = {
+   *   server
+   *     .withWebViewRoute("/counter", new CounterPage())
+   *     .withWebViewRoute("/dashboard", new DashboardPage())
+   * }
+   * }}}
+   */
+  def registerWebViewRoutes(server: WebViewServer): WebViewServer = server
+
+  /**
+   * Whether this site has any WebView routes.
+   * Override if you implement registerWebViewRoutes.
+   */
+  def hasWebViewRoutes: Boolean = false
 
   // Site metadata
   def config: SiteConfig = SiteConfig()
@@ -68,7 +90,7 @@ trait BlargSite {
  */
 case class SiteConfig(
   siteTitle: String = "My Site",
-  siteUrl: String = "http://localhost:8080",
-  port: Int = 8080,
+  siteUrl: String = "http://localhost:9000",
+  port: Int = 9000,
   devMode: Boolean = false
 )

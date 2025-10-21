@@ -16,7 +16,7 @@ import java.nio.file.{Files, Path, Paths}
  * - WebView DevTools enabled
  *
  * Usage:
- *   blarg dev               # Start dev server on port 8080
+ *   blarg dev               # Start dev server on port 9000
  *   blarg dev -p 3000       # Start on custom port
  */
 object Dev extends Command {
@@ -54,7 +54,8 @@ object Dev extends Command {
           override def staticDir = site.staticDir
           override def staticPages = site.staticPages
           override def serverPages = site.serverPages
-          override def webViewPages = site.webViewPages
+          override def registerWebViewRoutes(server: dev.alteration.branch.spider.webview.WebViewServer) = site.registerWebViewRoutes(server)
+          override def hasWebViewRoutes = site.hasWebViewRoutes
           override def config = site.config.copy(port = port, devMode = true)
         }
 

@@ -1,16 +1,13 @@
 package commands.serve
 
-import com.sun.net.httpserver.{HttpExchange, HttpHandler, HttpServer}
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
-// TODO: Update to use new spider.server API
-// import dev.alteration.branch.spider.server.{ContextHandler, FileContextHandler}
+import dev.alteration.branch.spider.server.*
+import dev.alteration.branch.spider.common.HttpMethod
 import dev.alteration.branch.ursula.args.{Argument, BooleanFlag, Flag, IntFlag}
 import dev.alteration.branch.ursula.command.{Command, CommandContext}
 
-import java.net.InetSocketAddress
 import java.nio.file.{Files, Path}
 import java.util.concurrent.CountDownLatch
-import scala.util.Using
 
 object NoTTYFlag extends BooleanFlag {
   override val description: String =
@@ -46,7 +43,7 @@ object Serve extends Command {
   override val usage: String               = "serve -p 9000 -d ./build"
   override val examples: Seq[String]       = Seq(
     "serve",
-    "serve -p 8080",
+    "serve -p 9000",
     "serve -d ./build"
   )
   override val trigger: String             = "serve"
@@ -60,32 +57,29 @@ object Serve extends Command {
     val port = ctx.requiredFlag(PortFlag)
     val dir  = ctx.requiredFlag(DirFlag)
 
-    val server: HttpServer =
-      HttpServer.create(new InetSocketAddress(port), 0)
-
-    // TODO: Replace with updated spider.server API when available
-    // For now, use basic file serving
-    val fileHandler = new HttpHandler {
-      override def handle(exchange: HttpExchange): Unit = {
-        val path = exchange.getRequestURI.getPath
-        val file = dir.resolve(if (path == "/") "index.html" else path.stripPrefix("/"))
-
-        if (Files.exists(file) && Files.isRegularFile(file)) {
-          val bytes = Files.readAllBytes(file)
-          exchange.sendResponseHeaders(200, bytes.length)
-          Using.resource(exchange.getResponseBody)(_.write(bytes))
-        } else {
-          val notFound = "404 Not Found".getBytes
-          exchange.sendResponseHeaders(404, notFound.length)
-          Using.resource(exchange.getResponseBody)(_.write(notFound))
-        }
-      }
+    // Create router using Spider's FileHandler
+    val fileHandler = new FileHandler(dir)
+    val router: PartialFunction[(HttpMethod, List[String]), RequestHandler[?, ?]] = {
+      case (HttpMethod.GET, _) => fileHandler
     }
 
-    server.createContext("/", fileHandler)
-    server.start()
+    val server = new SpiderServer(
+      port = port,
+      router = router,
+      config = ServerConfig.default
+    )
 
     println(s"Server started at http://localhost:$port")
+    println(s"Serving files from: $dir")
+
+    // Start server in background thread
+    val serverThread = new Thread {
+      override def run(): Unit = {
+        server.start()
+      }
+    }
+    serverThread.setDaemon(true)
+    serverThread.start()
 
     if ctx.booleanFlag(NoTTYFlag) then {
       Runtime.getRuntime.addShutdownHook(new Thread {

@@ -14,7 +14,7 @@ import scala.util.{Failure, Success, Try}
  * Serves static pages, SSR pages, and WebView components on a single port.
  *
  * Usage:
- *   blarg start              # Start server on port 8080
+ *   blarg start              # Start server on port 9000
  *   blarg start -p 3000      # Start on custom port
  */
 object Start extends Command {
@@ -23,7 +23,7 @@ object Start extends Command {
     name = "port",
     shortKey = "p",
     description = "Server port",
-    default = Some(8080)
+    default = Some(9000)
   )
 
   override val trigger: String = "start"
@@ -50,7 +50,8 @@ object Start extends Command {
           override def staticDir = site.staticDir
           override def staticPages = site.staticPages
           override def serverPages = site.serverPages
-          override def webViewPages = site.webViewPages
+          override def registerWebViewRoutes(server: dev.alteration.branch.spider.webview.WebViewServer) = site.registerWebViewRoutes(server)
+          override def hasWebViewRoutes = site.hasWebViewRoutes
           override def config = site.config.copy(port = port)
         }
 

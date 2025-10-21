@@ -3,24 +3,23 @@ package blarg.core.routing
 import blarg.core.BlargSite
 import blarg.core.pages.ServerPage
 import blarg.core.rendering.Blarg
-import com.sun.net.httpserver.{HttpExchange, HttpHandler}
+
+import dev.alteration.branch.spider.server.{Request, RequestHandler, Response}
+import dev.alteration.branch.spider.server.RequestHandler.given
 
 import java.time.Instant
 import java.net.URLDecoder
 import scala.concurrent.duration.*
 import scala.collection.concurrent.TrieMap
-import scala.util.Using
 
 /**
  * Router for server-rendered pages.
  *
- * Compiles ServerPage definitions into HTTP handlers with:
+ * Compiles ServerPage definitions into Spider RequestHandlers with:
  * - Path parameter extraction (/products/:id)
  * - Query string parsing
  * - In-memory caching with TTL
  * - Automatic template rendering
- *
- * TODO: Update to use new Spider API when available
  */
 object BlargRouter {
 
@@ -29,25 +28,25 @@ object BlargRouter {
   case class CachedPage(html: String, timestamp: Instant, ttl: Duration)
 
   /**
-   * Build HTTP handlers from a BlargSite's ServerPages.
+   * Build request handlers from a BlargSite's ServerPages.
    *
    * @param site The site definition
-   * @return Map of route patterns to HTTP handlers
+   * @return Map of route patterns to Spider RequestHandlers
    */
-  def buildRoutes(site: BlargSite): Map[String, HttpHandler] = {
+  def buildRoutes(site: BlargSite): Map[String, RequestHandler[Unit, String]] = {
     site.serverPages.map { page =>
       page.route -> buildHandler(page)
     }.toMap
   }
 
   /**
-   * Build an HTTP handler for a single ServerPage.
+   * Build a Spider RequestHandler for a single ServerPage.
    */
-  private def buildHandler(page: ServerPage): HttpHandler = new HttpHandler {
-    override def handle(exchange: HttpExchange): Unit = {
+  private def buildHandler(page: ServerPage): RequestHandler[Unit, String] = new RequestHandler[Unit, String] {
+    override def handle(request: Request[Unit]): Response[String] = {
       val cacheTTL = page.cacheTTL.getOrElse(5.minutes)
-      val path = exchange.getRequestURI.getPath
-      val uri = exchange.getRequestURI.toString
+      val path = request.uri.getPath
+      val uri = request.uri.toString
       val cacheKey = s"${page.route}:$path"
 
       val html = if (cacheTTL.toMillis > 0) {
@@ -72,10 +71,7 @@ object BlargRouter {
         renderPage(page, path, segments, uri)
       }
 
-      val bytes = html.getBytes("UTF-8")
-      exchange.getResponseHeaders.set("Content-Type", "text/html; charset=utf-8")
-      exchange.sendResponseHeaders(200, bytes.length)
-      Using.resource(exchange.getResponseBody)(_.write(bytes))
+      Response(200, html).withContentType("text/html; charset=utf-8")
     }
   }
 

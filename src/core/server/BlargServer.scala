@@ -1,14 +1,14 @@
 package blarg.core.server
 
 import blarg.core.BlargSite
-import blarg.core.routing.BlargRouter
+import blarg.core.pages.{ServerPage, WebViewPage}
 
+import dev.alteration.branch.spider.server.*
+import dev.alteration.branch.spider.server.RequestHandler.given
+import dev.alteration.branch.spider.common.HttpMethod
 import dev.alteration.branch.spider.webview.WebViewServer
-import com.sun.net.httpserver.{HttpExchange, HttpHandler, HttpServer}
 
-import java.net.InetSocketAddress
 import java.nio.file.{Files, Path, Paths}
-import scala.util.Using
 
 /**
  * Unified server for Blarg sites.
@@ -28,7 +28,7 @@ object BlargServer {
    *
    * This method:
    * 1. Builds static pages to disk (if any)
-   * 2. Creates Spider HTTP server
+   * 2. Creates WebView server (if needed) or SpiderServer
    * 3. Registers static file serving
    * 4. Registers SSR routes
    * 5. Registers WebView components
@@ -48,42 +48,54 @@ object BlargServer {
       SiteBuilder.build(site, Paths.get("build"))
     }
 
-    // Step 2: Create HTTP server
-    val server = HttpServer.create(new InetSocketAddress(port), 0)
-
-    // Step 3: Serve pre-built static pages
-    val buildDir = Paths.get("build")
-    if (Files.exists(buildDir)) {
-      server.createContext("/", createFileHandler(buildDir))
-      println(s"📁 Serving static pages from /build")
+    // Step 2: Determine if we need WebView server or basic Spider server
+    if (site.hasWebViewRoutes) {
+      startWithWebView(site, port, devMode)
+    } else {
+      startBasicServer(site, port, devMode)
     }
+  }
 
-    // Step 4: Serve static assets
-    if (Files.exists(site.staticDir)) {
-      server.createContext("/static", createFileHandler(site.staticDir))
-      println(s"🎨 Serving static assets from ${site.staticDir}")
-    }
+  /**
+   * Start server with WebView support.
+   */
+  private def startWithWebView(site: BlargSite, port: Int, devMode: Boolean): Unit = {
+    // Build WebView server with all routes
+    var server = WebViewServer()
 
-    // Step 5: Register SSR routes
+    // Register WebView pages using the site's callback
+    server = site.registerWebViewRoutes(server)
+    println(s"📱 WebView routes registered")
+
+    // Register SSR pages
     if (site.serverPages.nonEmpty) {
-      // TODO: Implement SSR route handling with updated Spider API
-      println(s"⚠️  SSR routes not yet implemented (${site.serverPages.length} pages)")
+      println(s"⚠️  SSR routes not yet supported with WebView server (${site.serverPages.length} pages)")
       site.serverPages.foreach { page =>
         println(s"   - ${page.route}")
       }
     }
 
-    // Step 6: Register WebView components (if any)
-    if (site.webViewPages.nonEmpty) {
-      // TODO: Integrate WebView server properly
-      println(s"⚠️  WebView integration not yet implemented (${site.webViewPages.length} pages)")
-      site.webViewPages.foreach { page =>
-        println(s"   - ${page.route}")
-      }
+    // Enable dev mode if requested
+    if (devMode) {
+      server = server.withDevMode(true)
+      println("🛠️  Dev mode enabled (DevTools at /__devtools)")
     }
 
-    // Step 7: Start the HTTP server
-    server.start()
+    // Serve static files from build and static directories
+    val buildDir = Paths.get("build")
+    val staticDir = site.staticDir
+
+    if (Files.exists(buildDir)) {
+      val buildFileHandler = new FileHandler(buildDir)
+      server = server.withHttpRoute("", buildFileHandler)
+      println(s"📁 Serving static pages from /build")
+    }
+
+    if (Files.exists(staticDir)) {
+      val staticFileHandler = new FileHandler(staticDir)
+      server = server.withHttpRoute("static", staticFileHandler)
+      println(s"🎨 Serving static assets from ${staticDir}")
+    }
 
     println()
     println(s"✅ Blarg server running at http://localhost:$port")
@@ -91,32 +103,84 @@ object BlargServer {
     println(s"Site: ${site.config.siteTitle}")
     println(s"Static pages: ${site.staticPages.length}")
     println(s"SSR pages: ${site.serverPages.length}")
-    println(s"WebView pages: ${site.webViewPages.length}")
-
-    if (devMode) {
-      println()
-      println("🛠️  Dev mode enabled (hot reload, DevTools)")
-    }
-
-    // Keep server running
+    println()
     println("Press Ctrl+C to stop")
-    Thread.currentThread().join()
+
+    // Start the server (blocking)
+    server.start(port = port)
   }
 
-  private def createFileHandler(baseDir: Path): HttpHandler = new HttpHandler {
-    override def handle(exchange: HttpExchange): Unit = {
-      val path = exchange.getRequestURI.getPath
-      val file = baseDir.resolve(if (path == "/") "index.html" else path.stripPrefix("/"))
+  /**
+   * Start basic Spider server without WebView.
+   */
+  private def startBasicServer(site: BlargSite, port: Int, devMode: Boolean): Unit = {
+    val buildDir = Paths.get("build")
+    val staticDir = site.staticDir
 
-      if (Files.exists(file) && Files.isRegularFile(file)) {
-        val bytes = Files.readAllBytes(file)
-        exchange.sendResponseHeaders(200, bytes.length)
-        Using.resource(exchange.getResponseBody)(_.write(bytes))
-      } else {
-        val notFound = "404 Not Found".getBytes
-        exchange.sendResponseHeaders(404, notFound.length)
-        Using.resource(exchange.getResponseBody)(_.write(notFound))
+    // Create router for static files and SSR pages
+    val router: PartialFunction[(HttpMethod, List[String]), RequestHandler[?, ?]] = {
+      // Serve static assets
+      case (HttpMethod.GET, "static" :: path) if Files.exists(staticDir) =>
+        new FileHandler(staticDir)
+
+      // SSR routes
+      case (method, path) if isSSRRoute(site.serverPages, method, path) =>
+        createSSRHandler(site.serverPages, method, path)
+
+      // Serve pre-built static pages from /build
+      case (HttpMethod.GET, path) if Files.exists(buildDir) =>
+        new FileHandler(buildDir)
+    }
+
+    val server = new SpiderServer(
+      port = port,
+      router = router,
+      config = ServerConfig.default
+    )
+
+    println(s"📁 Serving static pages from /build")
+    if (Files.exists(staticDir)) {
+      println(s"🎨 Serving static assets from ${staticDir}")
+    }
+
+    if (site.serverPages.nonEmpty) {
+      println(s"🔧 SSR routes (${site.serverPages.length} pages):")
+      site.serverPages.foreach { page =>
+        println(s"   - ${page.route}")
       }
+    }
+
+    println()
+    println(s"✅ Blarg server running at http://localhost:$port")
+    println()
+    println(s"Site: ${site.config.siteTitle}")
+    println(s"Static pages: ${site.staticPages.length}")
+    println(s"SSR pages: ${site.serverPages.length}")
+    println()
+    println("Press Ctrl+C to stop")
+
+    // Start the server (blocking)
+    server.start()
+  }
+
+  /**
+   * Check if a route matches an SSR page.
+   */
+  private def isSSRRoute(serverPages: Seq[ServerPage], method: HttpMethod, path: List[String]): Boolean = {
+    val pathStr = "/" + path.mkString("/")
+    serverPages.exists { page =>
+      method == HttpMethod.GET && page.route == pathStr
+    }
+  }
+
+  /**
+   * Create a handler for an SSR page.
+   */
+  private def createSSRHandler(serverPages: Seq[ServerPage], method: HttpMethod, path: List[String]): RequestHandler[?, ?] = {
+    val pathStr = "/" + path.mkString("/")
+    serverPages.find(_.route == pathStr) match {
+      case Some(page) => new ServerPageHandler(page)
+      case None => NotFoundHandler()
     }
   }
 
@@ -127,26 +191,48 @@ object BlargServer {
    *
    * @param port The port to run on
    */
-  def serveStatic(port: Int = 8080): Unit = {
+  def serveStatic(port: Int = 9000): Unit = {
     println(s"🚀 Starting static file server...")
 
     val buildDir = Paths.get("build")
     val staticDir = Paths.get("site/static")
 
-    val server = HttpServer.create(new InetSocketAddress(port), 0)
+    val router: PartialFunction[(HttpMethod, List[String]), RequestHandler[?, ?]] = {
+      case (HttpMethod.GET, "static" :: _) if Files.exists(staticDir) =>
+        new FileHandler(staticDir)
 
-    if (Files.exists(buildDir)) {
-      server.createContext("/", createFileHandler(buildDir))
+      case (HttpMethod.GET, _) if Files.exists(buildDir) =>
+        new FileHandler(buildDir)
     }
 
-    if (Files.exists(staticDir)) {
-      server.createContext("/static", createFileHandler(staticDir))
-    }
-
-    server.start()
+    val server = new SpiderServer(
+      port = port,
+      router = router,
+      config = ServerConfig.default
+    )
 
     println(s"✅ Serving static site at http://localhost:$port")
     println("Press Ctrl+C to stop")
-    Thread.currentThread().join()
+
+    server.start()
+  }
+}
+
+/**
+ * Handler for server-rendered pages.
+ */
+private class ServerPageHandler(page: ServerPage) extends RequestHandler[Unit, String] {
+  override def handle(request: Request[Unit]): Response[String] = {
+    // TODO: Implement actual SSR rendering with caching
+    Response(200, s"<html><body><h1>SSR Page: ${page.route}</h1></body></html>")
+  }
+}
+
+/**
+ * Handler for 404 Not Found.
+ */
+private case class NotFoundHandler() extends RequestHandler[Unit, String] {
+  override def handle(request: Request[Unit]): Response[String] = {
+    Response(404, "<html><body><h1>404 Not Found</h1></body></html>")
   }
 }
