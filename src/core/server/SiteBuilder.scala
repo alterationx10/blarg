@@ -1,8 +1,8 @@
-package blarg.core.server
+package dev.alteration.blarg.core.server
 
-import blarg.core.BlargSite
-import blarg.core.pages.StaticPage
-import blarg.core.rendering.Blarg
+import dev.alteration.blarg.core.BlargSite
+import dev.alteration.blarg.core.pages.StaticPage
+import dev.alteration.blarg.core.rendering.Blarg
 
 import java.nio.file.{Files, Path, StandardCopyOption}
 import java.io.IOException

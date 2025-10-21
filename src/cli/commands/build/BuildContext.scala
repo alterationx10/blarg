@@ -1,5 +1,4 @@
-package commands.build
-
+package dev.alteration.blarg.cli.commands.build
 import dev.alteration.branch.mustachio.Stache
 import dev.alteration.branch.mustachio.Stache.{Arr, Null, Str}
 

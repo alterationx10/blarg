@@ -1,9 +1,8 @@
-package blarg.core.routing
+package dev.alteration.blarg.core.routing
 
-import blarg.core.BlargSite
-import blarg.core.pages.ServerPage
-import blarg.core.rendering.Blarg
-
+import dev.alteration.blarg.core.BlargSite
+import dev.alteration.blarg.core.pages.ServerPage
+import dev.alteration.blarg.core.rendering.Blarg
 import dev.alteration.branch.spider.server.{Request, RequestHandler, Response}
 import dev.alteration.branch.spider.server.RequestHandler.given
 

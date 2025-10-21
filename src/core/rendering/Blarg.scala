@@ -1,4 +1,4 @@
-package blarg.core.rendering
+package dev.alteration.blarg.core.rendering
 
 import dev.alteration.branch.mustachio.{Mustachio, Stache}
 

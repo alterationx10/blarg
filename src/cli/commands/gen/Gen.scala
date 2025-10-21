@@ -1,6 +1,6 @@
-package commands.gen
+package dev.alteration.blarg.cli.commands.gen
 
-import commands.build.FrontMatter
+import dev.alteration.blarg.cli.commands.build.FrontMatter
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 import dev.alteration.branch.ursula.args.{Argument, Flag}
 import dev.alteration.branch.ursula.command.{Command, CommandContext}

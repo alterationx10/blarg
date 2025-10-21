@@ -1,16 +1,18 @@
-package commands.newsite
+package dev.alteration.blarg.cli.commands.newsite
 
-import commands.build.FrontMatter
-import config.SiteConfig
+package cli.commands.newsite
+
+import dev.alteration.blarg.core.config.SiteConfig
+import dev.alteration.blarg.core.rendering.FrontMatter
 import dev.alteration.branch.friday.Json
+import dev.alteration.branch.friday.Json.*
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 import dev.alteration.branch.ursula.args.{Argument, Flag}
 import dev.alteration.branch.ursula.command.{Command, CommandContext}
-import dev.alteration.branch.friday.Json.*
 
 import java.nio.file.{Files, Path}
-import java.time.{Instant, ZoneId}
 import java.time.format.DateTimeFormatter
+import java.time.{Instant, ZoneId}
 import scala.util.Using
 
 object DirFlag extends Flag[Path] {

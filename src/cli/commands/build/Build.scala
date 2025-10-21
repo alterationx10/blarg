@@ -1,11 +1,11 @@
-package commands.build
+package dev.alteration.blarg.cli.commands.build
 
+import dev.alteration.branch.macaroni.extensions.PathExtensions.*
+import dev.alteration.branch.macaroni.runtimes.BranchExecutors
 import dev.alteration.branch.ursula.args.{Argument, BooleanFlag, Flag}
 import dev.alteration.branch.ursula.command.{Command, CommandContext}
-import dev.alteration.branch.macaroni.runtimes.BranchExecutors
-import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 
-import java.nio.file.{Files, FileSystems, Path, StandardWatchEventKinds}
+import java.nio.file.{FileSystems, Files, Path, StandardWatchEventKinds}
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.*
 

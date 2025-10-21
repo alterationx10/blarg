@@ -1,4 +1,4 @@
-package commands.build
+package dev.alteration.blarg.cli.commands.build
 
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 import dev.alteration.branch.mustachio.Stache.Str

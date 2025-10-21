@@ -1,8 +1,7 @@
-package blarg.core.rendering
+package dev.alteration.blarg.core.rendering
 
-import blarg.core.pages.StaticPage
+import dev.alteration.blarg.core.pages.StaticPage
 import dev.alteration.branch.mustachio.Stache
-
 import org.commonmark.Extension
 import org.commonmark.ext.autolink.AutolinkExtension
 import org.commonmark.ext.footnotes.FootnotesExtension

@@ -1,8 +1,8 @@
 package blarg.core.server
 
-import blarg.core.BlargSite
-import blarg.core.pages.{ServerPage, WebViewPage}
-
+import dev.alteration.blarg.core.BlargSite
+import dev.alteration.blarg.core.pages.ServerPage
+import dev.alteration.blarg.core.server.SiteBuilder
 import dev.alteration.branch.spider.server.*
 import dev.alteration.branch.spider.server.RequestHandler.given
 import dev.alteration.branch.spider.common.HttpMethod

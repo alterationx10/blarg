@@ -1,4 +1,4 @@
-package blarg.core.pages
+package dev.alteration.blarg.core.pages
 
 import dev.alteration.branch.mustachio.Stache
 

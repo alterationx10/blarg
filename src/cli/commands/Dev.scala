@@ -1,7 +1,7 @@
 package blarg.cli.commands
 
-import blarg.core.BlargSite
 import blarg.core.server.BlargServer
+import dev.alteration.blarg.core.BlargSite
 import dev.alteration.branch.ursula.args.{Argument, Flag, Flags}
 import dev.alteration.branch.ursula.command.{Command, CommandContext}
 

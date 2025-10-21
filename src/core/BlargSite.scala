@@ -1,8 +1,7 @@
-package blarg.core
+package dev.alteration.blarg.core
 
-import blarg.core.pages.{StaticPage, ServerPage, WebViewPage}
-import blarg.core.rendering.Markdown
-
+import dev.alteration.blarg.core.pages.{ServerPage, StaticPage}
+import dev.alteration.blarg.core.rendering.Markdown
 import dev.alteration.branch.spider.webview.WebViewServer
 
 import java.nio.file.{Path, Paths}

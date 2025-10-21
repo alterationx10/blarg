@@ -1,4 +1,4 @@
-package config
+package dev.alteration.blarg.core.config
 
 import dev.alteration.branch.friday.JsonCodec
 

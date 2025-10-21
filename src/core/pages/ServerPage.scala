@@ -1,7 +1,8 @@
-package blarg.core.pages
+package dev.alteration.blarg.core.pages
 
 import dev.alteration.branch.mustachio.Stache
-import blarg.core.routing.PageRequest
+import dev.alteration.blarg.core.routing.PageRequest
+
 import scala.concurrent.duration.*
 
 /**

@@ -1,6 +1,6 @@
-package blarg.core.pages
+package dev.alteration.blarg.core.pages
 
-import blarg.core.rendering.FrontMatter
+import dev.alteration.blarg.core.rendering.FrontMatter
 import dev.alteration.branch.mustachio.Stache
 
 /**

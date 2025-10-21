@@ -1,8 +1,8 @@
-package blarg.core.pages
+package dev.alteration.blarg.core.pages
 
 import dev.alteration.branch.mustachio.Stache
 import dev.alteration.branch.spider.webview.WebView
-import blarg.core.rendering.Blarg
+import dev.alteration.blarg.core.rendering.Blarg
 
 /**
  * A reactive WebView page with real-time interactivity.

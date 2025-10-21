@@ -1,8 +1,8 @@
-package commands.serve
+package dev.alteration.blarg.cli.commands.serve
 
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
-import dev.alteration.branch.spider.server.*
 import dev.alteration.branch.spider.common.HttpMethod
+import dev.alteration.branch.spider.server.*
 import dev.alteration.branch.ursula.args.{Argument, BooleanFlag, Flag, IntFlag}
 import dev.alteration.branch.ursula.command.{Command, CommandContext}
 

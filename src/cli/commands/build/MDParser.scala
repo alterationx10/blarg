@@ -1,5 +1,4 @@
-package commands.build
-
+package dev.alteration.blarg.cli.commands.build
 import org.commonmark.Extension
 import org.commonmark.ext.autolink.AutolinkExtension
 import org.commonmark.ext.footnotes.FootnotesExtension

@@ -1,4 +1,4 @@
-package blarg.core.routing
+package dev.alteration.blarg.core.routing
 
 /**
  * Request context for server-rendered pages.
