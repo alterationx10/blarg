@@ -1,5 +1,6 @@
 package commands.build
 
+import config.{NavItem, SiteConfig}
 import dev.alteration.branch.mustachio.Stache
 import dev.alteration.branch.mustachio.Stache.{Arr, Null, Str}
 
@@ -9,16 +10,31 @@ import scala.util.Try
 
 case class BuildContext(
     content: Stache,
+    config: SiteConfig,
     buildTime: String = Instant.now().toString,
     year: Int = Year.now().getValue
 )
 
 object BuildContext {
+  given Conversion[NavItem, Stache] = ni =>
+    Stache.obj(
+      "label" -> Str(ni.label),
+      "href"  -> Str(ni.href)
+    )
+
+  given Conversion[SiteConfig, Stache] = sc =>
+    Stache.obj(
+      "siteTitle"  -> Str(sc.siteTitle),
+      "author"     -> Str(sc.author),
+      "navigation" -> Arr(sc.navigation.map(summon[Conversion[NavItem, Stache]].apply))
+    )
+
   given Conversion[BuildContext, Stache] = bc =>
     Stache.obj(
       "buildTime" -> Str(bc.buildTime),
       "year"      -> Str(bc.year.toString),
-      "content"   -> bc.content
+      "content"   -> bc.content,
+      "config"    -> bc.config
     )
 
 }

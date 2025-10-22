@@ -1,12 +1,9 @@
 package commands.newsite
 
 import commands.build.FrontMatter
-import config.SiteConfig
-import dev.alteration.branch.friday.Json
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 import dev.alteration.branch.ursula.args.{Argument, Flag}
 import dev.alteration.branch.ursula.command.Command
-import dev.alteration.branch.friday.Json.*
 
 import java.nio.file.{Files, Path}
 import java.time.{Instant, ZoneId}
@@ -74,11 +71,15 @@ object NewSite extends Command {
       siteFolder / "templates"
     ).foreach(p => Files.createDirectories(p))
 
-    // Write a default config
-    Files.writeString(
-      siteFolder / "blarg.json",
-      Json.encode(SiteConfig.default).toJsonString
-    )
+    // Copy default config
+    Using.resource(
+      getClass.getClassLoader.getResourceAsStream("site/blarg.json")
+    ) { is =>
+      Files.write(
+        siteFolder / "blarg.json",
+        is.readAllBytes()
+      )
+    }
 
     // Add a gitignore
     Using.resource(
@@ -96,7 +97,10 @@ object NewSite extends Command {
       "latest",
       "page",
       "site",
-      "tags"
+      "tags",
+      "header",
+      "nav",
+      "footer"
     ).map(_ + ".mustache")
       .foreach { t =>
         Using.resource(

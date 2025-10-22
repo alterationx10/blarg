@@ -1,5 +1,8 @@
 package commands.build
 
+import config.SiteConfig
+import dev.alteration.branch.friday.Json
+import dev.alteration.branch.friday.Json.*
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 import dev.alteration.branch.mustachio.Stache.Str
 import dev.alteration.branch.mustachio.{Mustachio, Stache}
@@ -44,6 +47,37 @@ object SiteBuilder {
     val htmlRenderer: HtmlRenderer =
       HtmlRenderer.builder().build()
 
+    lazy val siteConfig: SiteConfig = {
+      val configPath = siteFolder / "blarg.json"
+      if !Files.exists(configPath) then {
+        System.err.println(s"ERROR: Config file not found at: $configPath")
+        System.err.println(s"Please create a blarg.json file or run 'blarg new' to create a new site.")
+        System.exit(1)
+        throw new RuntimeException("unreachable")
+      }
+
+      Json.decode[SiteConfig](Files.readString(configPath)) match {
+        case scala.util.Success(cfg) => cfg
+        case scala.util.Failure(ex)   =>
+          System.err.println(s"ERROR: Failed to parse config file at: $configPath")
+          System.err.println(s"Reason: ${ex.getMessage}")
+          System.err.println(s"Please check your blarg.json is valid JSON with all required fields.")
+          System.exit(1)
+          throw new RuntimeException("unreachable")
+      }
+    }
+
+    val contentLoader: ContentLoader = ContentLoader(siteFolder)
+
+    def partials(contentPartial: String): Stache.Obj = {
+      Stache.obj(
+        "header"  -> Str(contentLoader.loadHeaderPartial()),
+        "nav"     -> Str(contentLoader.loadNavPartial()),
+        "footer"  -> Str(contentLoader.loadFooterPartial()),
+        "content" -> Str(contentPartial)
+      )
+    }
+
     override def copyStatic(): Unit = Try {
       Files
         .walk(siteFolder.resolve("static"))
@@ -77,10 +111,10 @@ object SiteBuilder {
               _thisBuild / path.relativeTo(pagesFolder)
             )
           else {
-            val siteTemplate = ContentLoader(siteFolder).loadSiteTemplate()
-            val pagePartial  = ContentLoader(siteFolder).loadPageTemplate()
+            val siteTemplate = contentLoader.loadSiteTemplate()
+            val pagePartial  = contentLoader.loadPageTemplate()
 
-            val content     = ContentLoader(siteFolder).load(path)
+            val content     = contentLoader.load(path)
             val contentNode = mdParser.parse(content)
 
             val visitor     = new YamlFrontMatterVisitor()
@@ -108,17 +142,14 @@ object SiteBuilder {
             contentCollection.addOne(cctx)
 
             val ctx = BuildContext(
-              content = cctx
+              content = cctx,
+              config = siteConfig
             )
 
             val siteContent = Mustachio.render(
               siteTemplate,
               ctx,
-              Some(
-                Stache.obj(
-                  "content" -> Str(pagePartial)
-                )
-              )
+              Some(partials(pagePartial))
             )
 
             Files.writeString(
@@ -135,8 +166,8 @@ object SiteBuilder {
         contentList: List[ContentContext]
     ): Unit = {
 
-      val siteTemplate    = ContentLoader(siteFolder).loadSiteTemplate()
-      val contentTemplate = ContentLoader(siteFolder).loadTagTemplate()
+      val siteTemplate    = contentLoader.loadSiteTemplate()
+      val contentTemplate = contentLoader.loadTagTemplate()
 
       val sortedTags =
         contentList
@@ -162,13 +193,10 @@ object SiteBuilder {
       val siteContent = Mustachio.render(
         siteTemplate,
         BuildContext(
-          content = cctx
+          content = cctx,
+          config = siteConfig
         ),
-        Some(
-          Stache.obj(
-            "content" -> Str(contentTemplate)
-          )
-        )
+        Some(partials(contentTemplate))
       )
 
       Files.writeString(
@@ -194,10 +222,10 @@ object SiteBuilder {
               _thisBuild / path.relativeTo(blogFolder)
             )
           else {
-            val siteTemplate = ContentLoader(siteFolder).loadSiteTemplate()
-            val blogPartial  = ContentLoader(siteFolder).loadBlogTemplate()
+            val siteTemplate = contentLoader.loadSiteTemplate()
+            val blogPartial  = contentLoader.loadBlogTemplate()
 
-            val content     = ContentLoader(siteFolder).load(path)
+            val content     = contentLoader.load(path)
             val contentNode = mdParser.parse(content)
 
             val visitor     = new YamlFrontMatterVisitor()
@@ -234,17 +262,14 @@ object SiteBuilder {
             contentCollection.addOne(cctx)
 
             val ctx = BuildContext(
-              content = cctx
+              content = cctx,
+              config = siteConfig
             )
 
             val siteContent = Mustachio.render(
               siteTemplate,
               ctx,
-              Some(
-                Stache.obj(
-                  "content" -> Str(blogPartial)
-                )
-              )
+              Some(partials(blogPartial))
             )
 
             Files.writeString(
@@ -262,8 +287,8 @@ object SiteBuilder {
         contentList: List[ContentContext]
     ): Unit = {
 
-      val siteTemplate    = ContentLoader(siteFolder).loadSiteTemplate()
-      val contentTemplate = ContentLoader(siteFolder).loadLatestTemplate()
+      val siteTemplate    = contentLoader.loadSiteTemplate()
+      val contentTemplate = contentLoader.loadLatestTemplate()
 
       val sortedTags =
         contentList.flatMap(_.fm.tags.getOrElse(List.empty)).distinct.sorted
@@ -275,13 +300,10 @@ object SiteBuilder {
       val siteContent = Mustachio.render(
         siteTemplate,
         BuildContext(
-          content = cctx
+          content = cctx,
+          config = siteConfig
         ),
-        Some(
-          Stache.obj(
-            "content" -> Str(contentTemplate)
-          )
-        )
+        Some(partials(contentTemplate))
       )
 
       Files.writeString(

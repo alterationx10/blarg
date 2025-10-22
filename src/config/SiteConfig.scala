@@ -2,12 +2,13 @@ package config
 
 import dev.alteration.branch.friday.JsonCodec
 
-case class SiteConfig(
-    siteTitle: String
+case class NavItem(
+    label: String,
+    href: String
 ) derives JsonCodec
 
-object SiteConfig {
-  def default: SiteConfig = SiteConfig(
-    siteTitle = "My Blarg! Site"
-  )
-}
+case class SiteConfig(
+    siteTitle: String,
+    author: String,
+    navigation: List[NavItem]
+) derives JsonCodec

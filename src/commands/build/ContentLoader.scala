@@ -13,6 +13,10 @@ trait ContentLoader {
   def loadTagTemplate(): String    = loadTemplate("tags.mustache")
   def loadLatestTemplate(): String = loadTemplate("latest.mustache")
 
+  def loadHeaderPartial(): String  = loadTemplate("header.mustache")
+  def loadNavPartial(): String     = loadTemplate("nav.mustache")
+  def loadFooterPartial(): String  = loadTemplate("footer.mustache")
+
 }
 
 object ContentLoader {
