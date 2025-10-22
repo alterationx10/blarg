@@ -5,7 +5,7 @@ import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 import dev.alteration.branch.ursula.args.{Argument, Flag}
 import dev.alteration.branch.ursula.command.Command
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, StandardOpenOption}
 import java.time.{Instant, ZoneId}
 import java.time.format.DateTimeFormatter
 import scala.util.Using
@@ -87,16 +87,24 @@ object NewSite extends Command {
     Using.resource(
       getClass.getClassLoader.getResourceAsStream(".gitignore")
     ) { is =>
+      val gitignore   = projectFolder / ".gitignore"
+      val writeOption =
+        if (Files.exists(gitignore) && Files.isRegularFile(gitignore)) {
+          StandardOpenOption.APPEND
+        } else StandardOpenOption.CREATE
       Files.write(
-        projectFolder / ".gitignore",
-        is.readAllBytes()
+        gitignore,
+        is.readAllBytes(),
+        writeOption
       )
     }
 
     // Copy templates
     // Main layout
     Using.resource(
-      getClass.getClassLoader.getResourceAsStream("site/templates/site.mustache")
+      getClass.getClassLoader.getResourceAsStream(
+        "site/templates/site.mustache"
+      )
     ) { is =>
       Files.write(
         siteFolder / "templates" / "site.mustache",
@@ -107,7 +115,9 @@ object NewSite extends Command {
     // Partials
     List("header", "nav", "footer").foreach { t =>
       Using.resource(
-        getClass.getClassLoader.getResourceAsStream(s"site/templates/partials/${t}.mustache")
+        getClass.getClassLoader.getResourceAsStream(
+          s"site/templates/partials/${t}.mustache"
+        )
       ) { is =>
         Files.write(
           siteFolder / "templates" / "partials" / s"${t}.mustache",
@@ -119,7 +129,9 @@ object NewSite extends Command {
     // Page templates
     List("page", "blog", "latest", "tags").foreach { t =>
       Using.resource(
-        getClass.getClassLoader.getResourceAsStream(s"site/templates/pages/${t}.mustache")
+        getClass.getClassLoader.getResourceAsStream(
+          s"site/templates/pages/${t}.mustache"
+        )
       ) { is =>
         Files.write(
           siteFolder / "templates" / "pages" / s"${t}.mustache",
