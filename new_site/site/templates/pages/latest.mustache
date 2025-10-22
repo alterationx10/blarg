@@ -12,8 +12,7 @@
         </hgroup>
         <p>
             <small>
-                {{#fm.author}}By {{fm.author}} • {{/fm.author}}
-                {{#fm.published}}{{fm.published}}{{/fm.published}}
+                {{#fm.author}}By {{fm.author}}{{/fm.author}}{{#fm.author}}{{#fm.published}} • {{/fm.published}}{{/fm.author}}{{#fm.published}}{{fm.published}}{{/fm.published}}
             </small>
         </p>
         <p>{{summary}}</p>

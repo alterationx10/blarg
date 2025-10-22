@@ -60,17 +60,24 @@ object Build extends Command {
         }
       val bg = Future {
         while true do {
-          val key = watcher.take()
-          val events = key
-            .pollEvents()
-            .asScala
-            .filterNot(_.kind() == StandardWatchEventKinds.OVERFLOW)
-          if events.nonEmpty then {
-            println(s"Rebuilding site")
-            sb.copyStatic()
-            sb.parseSite()
+          try {
+            val key = watcher.take()
+            val events = key
+              .pollEvents()
+              .asScala
+              .filterNot(_.kind() == StandardWatchEventKinds.OVERFLOW)
+            if events.nonEmpty then {
+              println(s"Rebuilding site...")
+              sb.cleanBuild()
+              sb.copyStatic()
+              sb.parseSite()
+              println("Build complete!")
+            }
+            key.reset()
+          } catch {
+            case ex: Exception =>
+              System.err.println(s"ERROR during rebuild: ${ex.getMessage}")
           }
-          key.reset()
         }
       }(BranchExecutors.executionContext)
 

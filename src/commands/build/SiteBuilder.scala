@@ -47,6 +47,9 @@ object SiteBuilder {
     val htmlRenderer: HtmlRenderer =
       HtmlRenderer.builder().build()
 
+    val buildTimestamp: String = java.time.Instant.now().toString
+    val buildYear: Int = java.time.Year.now().getValue
+
     lazy val siteConfig: SiteConfig = {
       val configPath = siteFolder / "blarg.json"
       if !Files.exists(configPath) then {
@@ -93,26 +96,34 @@ object SiteBuilder {
               _thisBuild / path.relativeTo(siteFolder / "static")
             )
         }
+    }.recover { case ex =>
+      System.err.println(s"WARNING: Failed to copy static files: ${ex.getMessage}")
     }
 
-    private def buildPages(): List[ContentContext] = {
-      val pagesFolder = siteFolder / "pages"
-
+    private def buildContent(
+        sourceFolder: Path,
+        templateName: String,
+        templateLoader: () => String,
+        urlBuilder: (Path, Path, String) => Path
+    ): List[ContentContext] = {
       val contentCollection: mutable.ListBuffer[ContentContext] =
         mutable.ListBuffer.empty
 
+      if !Files.exists(sourceFolder) then
+        return List.empty
+
       Files
-        .walk(pagesFolder)
+        .walk(sourceFolder)
         .filter(p => p.toString.endsWith(".md") || Files.isDirectory(p))
         .sorted(Comparator.naturalOrder())
         .forEach { path =>
           if Files.isDirectory(path) then
             Files.createDirectories(
-              _thisBuild / path.relativeTo(pagesFolder)
+              _thisBuild / path.relativeTo(sourceFolder)
             )
           else {
             val siteTemplate = contentLoader.loadSiteTemplate()
-            val pagePartial  = contentLoader.loadPageTemplate()
+            val contentPartial = templateLoader()
 
             val content     = contentLoader.load(path)
             val contentNode = mdParser.parse(content)
@@ -125,12 +136,12 @@ object SiteBuilder {
             val fn = path
               .relativeTo(path.getParent)
               .toString
-              .stripSuffix(".md") + ".html"
+              .stripSuffix(".md")
 
-            val destination = path.relativeTo(pagesFolder).getNameCount match {
-              case 1 => _thisBuild / fn
-              case _ => _thisBuild / path.relativeTo(pagesFolder).getParent / fn
-            }
+            val destination = urlBuilder(path, sourceFolder, fn)
+
+            if destination.getNameCount > 0 then
+              Files.createDirectories(destination.getParent)
 
             val cctx = ContentContext(
               content = htmlRenderer.render(contentNode),
@@ -143,13 +154,15 @@ object SiteBuilder {
 
             val ctx = BuildContext(
               content = cctx,
-              config = siteConfig
+              config = siteConfig,
+              buildTime = buildTimestamp,
+              year = buildYear
             )
 
             val siteContent = Mustachio.render(
               siteTemplate,
               ctx,
-              Some(partials(pagePartial))
+              Some(partials(contentPartial))
             )
 
             Files.writeString(
@@ -159,7 +172,21 @@ object SiteBuilder {
           }
         }
       contentCollection.toList
+    }
 
+    private def buildPages(): List[ContentContext] = {
+      buildContent(
+        siteFolder / "pages",
+        "page",
+        () => contentLoader.loadPageTemplate(),
+        (path, sourceFolder, fn) => {
+          val htmlFn = fn + ".html"
+          path.relativeTo(sourceFolder).getNameCount match {
+            case 1 => _thisBuild / htmlFn
+            case _ => _thisBuild / path.relativeTo(sourceFolder).getParent / htmlFn
+          }
+        }
+      )
     }
 
     private def buildTags(
@@ -194,7 +221,9 @@ object SiteBuilder {
         siteTemplate,
         BuildContext(
           content = cctx,
-          config = siteConfig
+          config = siteConfig,
+          buildTime = buildTimestamp,
+          year = buildYear
         ),
         Some(partials(contentTemplate))
       )
@@ -207,80 +236,25 @@ object SiteBuilder {
     }
 
     private def buildBlog(): List[ContentContext] = {
-      val blogFolder = siteFolder / "blog"
-
-      val contentCollection: mutable.ListBuffer[ContentContext] =
-        mutable.ListBuffer.empty
-
-      Files
-        .walk(blogFolder)
-        .filter(p => p.toString.endsWith(".md") || Files.isDirectory(p))
-        .sorted(Comparator.naturalOrder())
-        .forEach { path =>
-          if Files.isDirectory(path) then
-            Files.createDirectories(
-              _thisBuild / path.relativeTo(blogFolder)
-            )
-          else {
-            val siteTemplate = contentLoader.loadSiteTemplate()
-            val blogPartial  = contentLoader.loadBlogTemplate()
-
-            val content     = contentLoader.load(path)
-            val contentNode = mdParser.parse(content)
-
-            val visitor     = new YamlFrontMatterVisitor()
-            contentNode.accept(visitor)
-            val frontMatter = visitor.getData.asScala.toMap
-              .map((k, v) => (k -> v.asScala.toList))
-
-            val fn: String = path
-              .relativeTo(path.getParent)
-              .toString
-              .stripSuffix(".md")
-
-            val destination = path.relativeTo(blogFolder).getNameCount match {
-              case 1 =>
-                fn match {
-                  case s"$year-$month-$day-$slug" =>
-                    _thisBuild / year / month / day / s"$slug.html"
-                  case _                          =>
-                    _thisBuild / s"$fn.html"
-                }
-              case _ =>
-                _thisBuild / path.relativeTo(blogFolder).getParent / s"$fn.html"
-            }
-
-            if destination.getNameCount > 0 then
-              Files.createDirectories(destination.getParent)
-
-            val cctx = ContentContext(
-              content = htmlRenderer.render(contentNode),
-              fm = FrontMatter(frontMatter),
-              href = "/" + destination.relativeTo(_thisBuild),
-              summary = summary(contentNode)
-            )
-            contentCollection.addOne(cctx)
-
-            val ctx = BuildContext(
-              content = cctx,
-              config = siteConfig
-            )
-
-            val siteContent = Mustachio.render(
-              siteTemplate,
-              ctx,
-              Some(partials(blogPartial))
-            )
-
-            Files.writeString(
-              destination,
-              siteContent
-            )
+      buildContent(
+        siteFolder / "blog",
+        "blog",
+        () => contentLoader.loadBlogTemplate(),
+        (path, sourceFolder, fn) => {
+          path.relativeTo(sourceFolder).getNameCount match {
+            case 1 =>
+              // Parse date-based filename: YYYY-MM-DD-slug.md
+              fn match {
+                case s"$year-$month-$day-$slug" =>
+                  _thisBuild / year / month / day / s"$slug.html"
+                case _ =>
+                  _thisBuild / s"$fn.html"
+              }
+            case _ =>
+              _thisBuild / path.relativeTo(sourceFolder).getParent / s"$fn.html"
           }
-
         }
-      contentCollection.toList
-
+      )
     }
 
     private def buildLatest(
@@ -290,9 +264,6 @@ object SiteBuilder {
       val siteTemplate    = contentLoader.loadSiteTemplate()
       val contentTemplate = contentLoader.loadLatestTemplate()
 
-      val sortedTags =
-        contentList.flatMap(_.fm.tags.getOrElse(List.empty)).distinct.sorted
-
       val cctx = Stache.Arr(
         contentList.map(ContentContext.given_Conversion_ContentContext_Stache)
       )
@@ -301,7 +272,9 @@ object SiteBuilder {
         siteTemplate,
         BuildContext(
           content = cctx,
-          config = siteConfig
+          config = siteConfig,
+          buildTime = buildTimestamp,
+          year = buildYear
         ),
         Some(partials(contentTemplate))
       )
@@ -322,10 +295,13 @@ object SiteBuilder {
 
     override def cleanBuild(): Unit =
       Try {
-        Files
-          .walk(_thisBuild)
-          .sorted(Comparator.reverseOrder()) // Files before Dirs
-          .forEach(Files.deleteIfExists(_))
+        if Files.exists(_thisBuild) then
+          Files
+            .walk(_thisBuild)
+            .sorted(Comparator.reverseOrder()) // Files before Dirs
+            .forEach(Files.deleteIfExists(_))
+      }.recover { case ex =>
+        System.err.println(s"WARNING: Failed to clean build directory: ${ex.getMessage}")
       }
   }
 

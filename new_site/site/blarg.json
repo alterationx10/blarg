@@ -14,5 +14,6 @@
       "label": "About",
       "href": "/about"
     }
-  ]
+  ],
+  "dynamic": {}
 }
