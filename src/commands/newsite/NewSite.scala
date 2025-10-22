@@ -73,108 +73,80 @@ object NewSite extends Command {
       siteFolder / "templates" / "pages"
     ).foreach(p => Files.createDirectories(p))
 
-    // Copy default config
-    Using.resource(
-      getClass.getClassLoader.getResourceAsStream("site/blarg.json")
-    ) { is =>
-      Files.write(
-        siteFolder / "blarg.json",
-        is.readAllBytes()
-      )
+    // Helper to load resource with better error handling
+    def loadResource(path: String, destination: Path): Unit = {
+      val resourceStream = getClass.getClassLoader.getResourceAsStream(path)
+      if resourceStream == null then {
+        System.err.println(s"ERROR: Could not find resource: $path")
+        System.err.println(s"This is likely a build/packaging issue.")
+        System.err.println(
+          s"You can make an issue at https://github.com/alterationx10/blarg/issues."
+        )
+        System.exit(1)
+      }
+      Using.resource(resourceStream) { is =>
+        Files.write(destination, is.readAllBytes())
+      }
     }
 
-    // Add a gitignore
-    Using.resource(
-      getClass.getClassLoader.getResourceAsStream(".gitignore")
-    ) { is =>
-      val gitignore    = projectFolder / ".gitignore"
-      val contentToAdd = new String(is.readAllBytes())
+    // Copy default config
+    loadResource("site/blarg.json", siteFolder / "blarg.json")
 
-      if Files.exists(gitignore) && Files.isRegularFile(gitignore) then {
-        // Check if content already exists to avoid duplicates
-        val existingContent = Files.readString(gitignore)
-        if !existingContent.contains(contentToAdd.trim) then {
-          Files.writeString(
-            gitignore,
-            existingContent + (if existingContent.endsWith("\n") then ""
-                               else "\n") + contentToAdd,
-            StandardOpenOption.WRITE
-          )
+    // Add a gitignore
+    val gitignoreStream =
+      getClass.getClassLoader.getResourceAsStream(".gitignore")
+    if gitignoreStream != null then {
+      Using.resource(gitignoreStream) { is =>
+        val gitignore    = projectFolder / ".gitignore"
+        val contentToAdd = new String(is.readAllBytes())
+
+        if Files.exists(gitignore) && Files.isRegularFile(gitignore) then {
+          // Check if content already exists to avoid duplicates
+          val existingContent = Files.readString(gitignore)
+          if !existingContent.contains(contentToAdd.trim) then {
+            Files.writeString(
+              gitignore,
+              existingContent + (if existingContent.endsWith("\n") then ""
+                                 else "\n") + contentToAdd,
+              StandardOpenOption.WRITE
+            )
+          }
+        } else {
+          Files.writeString(gitignore, contentToAdd, StandardOpenOption.CREATE)
         }
-      } else {
-        Files.writeString(gitignore, contentToAdd, StandardOpenOption.CREATE)
       }
     }
 
     // Copy templates
-    // Main layout
-    Using.resource(
-      getClass.getClassLoader.getResourceAsStream(
-        "site/templates/site.mustache"
-      )
-    ) { is =>
-      Files.write(
-        siteFolder / "templates" / "site.mustache",
-        is.readAllBytes()
-      )
-    }
+    loadResource(
+      "site/templates/site.mustache",
+      siteFolder / "templates" / "site.mustache"
+    )
 
     // Partials
     List("header", "nav", "footer").foreach { t =>
-      Using.resource(
-        getClass.getClassLoader.getResourceAsStream(
-          s"site/templates/partials/${t}.mustache"
-        )
-      ) { is =>
-        Files.write(
-          siteFolder / "templates" / "partials" / s"${t}.mustache",
-          is.readAllBytes()
-        )
-      }
+      loadResource(
+        s"site/templates/partials/${t}.mustache",
+        siteFolder / "templates" / "partials" / s"${t}.mustache"
+      )
     }
 
     // Page templates
     List("page", "blog", "latest", "tags").foreach { t =>
-      Using.resource(
-        getClass.getClassLoader.getResourceAsStream(
-          s"site/templates/pages/${t}.mustache"
-        )
-      ) { is =>
-        Files.write(
-          siteFolder / "templates" / "pages" / s"${t}.mustache",
-          is.readAllBytes()
-        )
-      }
+      loadResource(
+        s"site/templates/pages/${t}.mustache",
+        siteFolder / "templates" / "pages" / s"${t}.mustache"
+      )
     }
 
     // Copy static resources
-    List(
-      "img/favicon.png",
-      "img/logo.png"
-    ).foreach { a =>
-      Using.resource(
-        getClass.getClassLoader.getResourceAsStream(s"site/static/$a")
-      ) { is =>
-        Files.write(
-          siteFolder / "static" / a,
-          is.readAllBytes()
-        )
-      }
+    List("img/favicon.png", "img/logo.png").foreach { a =>
+      loadResource(s"site/static/$a", siteFolder / "static" / a)
     }
 
     // copy pages
-    List(
-      "about.md",
-      "index.md"
-    ).foreach { p =>
-      Using.resource(
-        getClass.getClassLoader.getResourceAsStream(s"site/pages/$p")
-      ) { is =>
-        Files.write(
-          siteFolder / "pages" / p,
-          is.readAllBytes()
-        )
-      }
+    List("about.md", "index.md").foreach { p =>
+      loadResource(s"site/pages/$p", siteFolder / "pages" / p)
     }
 
     // Make a new blog post
