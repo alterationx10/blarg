@@ -1,6 +1,6 @@
 package config
 
-import dev.alteration.branch.friday.JsonCodec
+import dev.alteration.branch.friday.{JsonCodec, Json}
 
 case class NavItem(
     label: String,
@@ -10,5 +10,6 @@ case class NavItem(
 case class SiteConfig(
     siteTitle: String,
     author: String,
-    navigation: List[NavItem]
+    navigation: List[NavItem],
+    dynamic: Json
 ) derives JsonCodec

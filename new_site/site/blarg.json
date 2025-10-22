@@ -15,5 +15,10 @@
       "href": "/about"
     }
   ],
-  "dynamic": {}
+  "dynamic": {
+    "socialLinks": {
+      "github": "https://github.com/yourusername"
+    },
+    "siteDescription": "A blog about interesting things"
+  }
 }

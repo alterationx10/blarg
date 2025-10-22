@@ -17,6 +17,7 @@ case class BuildContext(
 )
 
 object BuildContext {
+
   given Conversion[NavItem, Stache] = ni =>
     Stache.obj(
       "label" -> Str(ni.label),
@@ -27,7 +28,8 @@ object BuildContext {
     Stache.obj(
       "siteTitle"  -> Str(sc.siteTitle),
       "author"     -> Str(sc.author),
-      "navigation" -> Arr(sc.navigation.map(summon[Conversion[NavItem, Stache]].apply))
+      "navigation" -> Arr(sc.navigation.map(summon[Conversion[NavItem, Stache]].apply)),
+      "dynamic"    -> Stache.fromJson(sc.dynamic)
     )
 
   given Conversion[BuildContext, Stache] = bc =>
