@@ -44,6 +44,7 @@ object Build extends Command {
     sb.cleanBuild()
     sb.copyStatic()
     sb.parseSite()
+    sb.validateLinks()
 
     if shouldWatch then {
       val watcher = FileSystems.getDefault.newWatchService()
@@ -71,6 +72,7 @@ object Build extends Command {
               sb.cleanBuild()
               sb.copyStatic()
               sb.parseSite()
+              sb.validateLinks()
               println("Build complete!")
             }
             key.reset()

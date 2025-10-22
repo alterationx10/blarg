@@ -22,6 +22,7 @@ trait SiteBuilder {
   def copyStatic(): Unit
   def parseSite(): Unit
   def cleanBuild(): Unit
+  def validateLinks(): Unit
 }
 
 object SiteBuilder {
@@ -49,6 +50,11 @@ object SiteBuilder {
 
     val buildTimestamp: String = java.time.Instant.now().toString
     val buildYear: Int = java.time.Year.now().getValue
+
+    // Track all generated pages for link validation
+    private val generatedPages: mutable.Map[String, String] = mutable.Map.empty
+    // Track static files as available resources
+    private val staticFiles: mutable.Set[String] = mutable.Set.empty
 
     lazy val siteConfig: SiteConfig = {
       val configPath = siteFolder / "blarg.json"
@@ -90,11 +96,13 @@ object SiteBuilder {
             Files.createDirectories(
               _thisBuild / path.relativeTo(siteFolder / "static")
             )
-          else
-            Files.copy(
-              path,
-              _thisBuild / path.relativeTo(siteFolder / "static")
-            )
+          else {
+            val destination = _thisBuild / path.relativeTo(siteFolder / "static")
+            Files.copy(path, destination)
+            // Track static file for link validation
+            val fileUrl = "/" + destination.relativeTo(_thisBuild)
+            staticFiles.add(fileUrl)
+          }
         }
     }.recover { case ex =>
       System.err.println(s"WARNING: Failed to copy static files: ${ex.getMessage}")
@@ -169,6 +177,10 @@ object SiteBuilder {
               destination,
               siteContent
             )
+
+            // Track generated page for link validation
+            val pageUrl = "/" + destination.relativeTo(_thisBuild)
+            generatedPages.put(pageUrl, siteContent)
           }
         }
       contentCollection.toList
@@ -233,6 +245,9 @@ object SiteBuilder {
         siteContent
       )
 
+      // Track generated page for link validation
+      generatedPages.put("/tags.html", siteContent)
+
     }
 
     private def buildBlog(): List[ContentContext] = {
@@ -284,6 +299,9 @@ object SiteBuilder {
         siteContent
       )
 
+      // Track generated page for link validation
+      generatedPages.put("/latest.html", siteContent)
+
     }
 
     override def parseSite(): Unit = {
@@ -300,9 +318,26 @@ object SiteBuilder {
             .walk(_thisBuild)
             .sorted(Comparator.reverseOrder()) // Files before Dirs
             .forEach(Files.deleteIfExists(_))
+        // Clear tracking data for new build
+        generatedPages.clear()
+        staticFiles.clear()
       }.recover { case ex =>
         System.err.println(s"WARNING: Failed to clean build directory: ${ex.getMessage}")
       }
+
+    override def validateLinks(): Unit = {
+      // Combine all available pages (HTML pages + static resources)
+      val availablePages = generatedPages.keySet.toSet ++ staticFiles.toSet
+
+      // Validate links in all generated HTML pages
+      val brokenLinks = LinkValidator.validateLinks(
+        generatedPages.toMap,
+        availablePages
+      )
+
+      // Report any broken links
+      LinkValidator.reportBrokenLinks(brokenLinks)
+    }
   }
 
 }
