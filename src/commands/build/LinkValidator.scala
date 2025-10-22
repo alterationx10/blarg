@@ -24,31 +24,28 @@ object LinkValidator {
   }
 
   /**
-   * Check if a link is internal (not external URL)
-   * Internal links start with "/" or are relative paths
+   * Check if a link is internal and absolute (not external URL or relative path)
+   * Only validates absolute internal links starting with "/"
+   * Relative paths (like "../other.html") are skipped for validation
    */
   def isInternalLink(href: String): Boolean = {
     !href.startsWith("http://") &&
     !href.startsWith("https://") &&
     !href.startsWith("mailto:") &&
-    !href.startsWith("#")
+    !href.startsWith("#") &&
+    href.startsWith("/")  // Only validate absolute internal links
   }
 
   /**
    * Normalize a link for comparison:
    * - Remove fragments (#anchor)
    * - Remove query strings
-   * - Ensure it starts with /
    * - Add .html extension if missing and not a directory reference
+   * Note: This function expects absolute paths (starting with /)
    */
   def normalizeLink(href: String): String = {
     val withoutFragment = href.split('#').head
-    val withoutQuery = withoutFragment.split('?').head
-
-    val normalized = if !withoutQuery.startsWith("/") then
-      "/" + withoutQuery
-    else
-      withoutQuery
+    val normalized = withoutFragment.split('?').head
 
     // If it doesn't end with .html or /, assume it's a file that should have .html
     if normalized.endsWith("/") || normalized.endsWith(".html") then

@@ -12,7 +12,7 @@ import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
 import org.commonmark.renderer.markdown.MarkdownRenderer
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, StandardCopyOption}
 import java.util.Comparator
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
@@ -48,8 +48,8 @@ object SiteBuilder {
     val htmlRenderer: HtmlRenderer =
       HtmlRenderer.builder().build()
 
-    val buildTimestamp: String = java.time.Instant.now().toString
-    val buildYear: Int = java.time.Year.now().getValue
+    def buildTimestamp: String = java.time.Instant.now().toString
+    def buildYear: Int = java.time.Year.now().getValue
 
     // Track all generated pages for link validation
     private val generatedPages: mutable.Map[String, String] = mutable.Map.empty
@@ -98,7 +98,7 @@ object SiteBuilder {
             )
           else {
             val destination = _thisBuild / path.relativeTo(siteFolder / "static")
-            Files.copy(path, destination)
+            Files.copy(path, destination, StandardCopyOption.REPLACE_EXISTING)
             // Track static file for link validation
             val fileUrl = "/" + destination.relativeTo(_thisBuild)
             staticFiles.add(fileUrl)

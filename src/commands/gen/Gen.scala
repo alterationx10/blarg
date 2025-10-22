@@ -13,7 +13,7 @@ object FrontmatterFlag extends Flag[Path] {
 
   override val name: String        = "frontmatter"
   override val shortKey: String    = "fm"
-  override val description: String = "Append frontmatter to an exising file"
+  override val description: String = "Append frontmatter to an existing file"
 
   override def parse: PartialFunction[String, Path] = str => wd / str
 
@@ -71,6 +71,21 @@ object PageFlag extends Flag[Path] {
 
 object Gen extends Command {
 
+  /**
+   * Convert a title to a URL-safe slug
+   * - Converts to lowercase
+   * - Replaces spaces and non-alphanumeric characters with hyphens
+   * - Removes consecutive hyphens
+   * - Trims leading/trailing hyphens
+   */
+  private def toSlug(title: String): String = {
+    title
+      .toLowerCase
+      .trim
+      .replaceAll("[^a-z0-9]+", "-")  // Replace non-alphanumeric with single hyphen
+      .replaceAll("^-+|-+$", "")       // Remove leading/trailing hyphens
+  }
+
   override val description: String         = "Generate a new blog post or page"
   override val usage: String               = "gen -b \"My New Blog Post\""
   override val examples: Seq[String]       = Seq(
@@ -116,8 +131,8 @@ object Gen extends Command {
         sitePath <- DirFlag.parseFirstArg(args)
         title    <- BlogFlag.parseFirstArg(args)
       } yield {
-        val name        = dtf.format(Instant.now()) + "-" + title.toLowerCase.trim
-          .replaceAll(" ", "-") + ".md"
+        val slug        = toSlug(title)
+        val name        = dtf.format(Instant.now()) + "-" + slug + ".md"
         val destination = sitePath / "blog" / name
         if Files.exists(destination) then
           println(s"Blog post already exists at $destination")

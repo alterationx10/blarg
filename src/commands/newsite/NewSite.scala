@@ -88,15 +88,21 @@ object NewSite extends Command {
       getClass.getClassLoader.getResourceAsStream(".gitignore")
     ) { is =>
       val gitignore   = projectFolder / ".gitignore"
-      val writeOption =
-        if (Files.exists(gitignore) && Files.isRegularFile(gitignore)) {
-          StandardOpenOption.APPEND
-        } else StandardOpenOption.CREATE
-      Files.write(
-        gitignore,
-        is.readAllBytes(),
-        writeOption
-      )
+      val contentToAdd = new String(is.readAllBytes())
+
+      if Files.exists(gitignore) && Files.isRegularFile(gitignore) then {
+        // Check if content already exists to avoid duplicates
+        val existingContent = Files.readString(gitignore)
+        if !existingContent.contains(contentToAdd.trim) then {
+          Files.writeString(
+            gitignore,
+            existingContent + (if existingContent.endsWith("\n") then "" else "\n") + contentToAdd,
+            StandardOpenOption.WRITE
+          )
+        }
+      } else {
+        Files.writeString(gitignore, contentToAdd, StandardOpenOption.CREATE)
+      }
     }
 
     // Copy templates

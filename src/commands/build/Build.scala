@@ -48,17 +48,25 @@ object Build extends Command {
 
     if shouldWatch then {
       val watcher = FileSystems.getDefault.newWatchService()
-      Files
-        .walk(siteFolder)
-        .filter(Files.isDirectory(_))
-        .forEach { path =>
-          path.register(
-            watcher,
-            StandardWatchEventKinds.ENTRY_CREATE,
-            StandardWatchEventKinds.ENTRY_MODIFY,
-            StandardWatchEventKinds.ENTRY_DELETE
-          )
-        }
+
+      // Helper function to register all directories for watching
+      def registerDirectories(): Unit = {
+        Files
+          .walk(siteFolder)
+          .filter(Files.isDirectory(_))
+          .forEach { path =>
+            path.register(
+              watcher,
+              StandardWatchEventKinds.ENTRY_CREATE,
+              StandardWatchEventKinds.ENTRY_MODIFY,
+              StandardWatchEventKinds.ENTRY_DELETE
+            )
+          }
+      }
+
+      // Initial registration
+      registerDirectories()
+
       val bg = Future {
         while true do {
           try {
@@ -73,6 +81,8 @@ object Build extends Command {
               sb.copyStatic()
               sb.parseSite()
               sb.validateLinks()
+              // Re-register directories to catch any new ones
+              registerDirectories()
               println("Build complete!")
             }
             key.reset()
