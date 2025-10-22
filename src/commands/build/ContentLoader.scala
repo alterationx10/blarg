@@ -8,14 +8,14 @@ trait ContentLoader {
   def loadTemplate(fileName: String): String
 
   def loadSiteTemplate(): String   = loadTemplate("site.mustache")
-  def loadBlogTemplate(): String   = loadTemplate("blog.mustache")
-  def loadPageTemplate(): String   = loadTemplate("page.mustache")
-  def loadTagTemplate(): String    = loadTemplate("tags.mustache")
-  def loadLatestTemplate(): String = loadTemplate("latest.mustache")
+  def loadBlogTemplate(): String   = loadTemplate("pages/blog.mustache")
+  def loadPageTemplate(): String   = loadTemplate("pages/page.mustache")
+  def loadTagTemplate(): String    = loadTemplate("pages/tags.mustache")
+  def loadLatestTemplate(): String = loadTemplate("pages/latest.mustache")
 
-  def loadHeaderPartial(): String  = loadTemplate("header.mustache")
-  def loadNavPartial(): String     = loadTemplate("nav.mustache")
-  def loadFooterPartial(): String  = loadTemplate("footer.mustache")
+  def loadHeaderPartial(): String  = loadTemplate("partials/header.mustache")
+  def loadNavPartial(): String     = loadTemplate("partials/nav.mustache")
+  def loadFooterPartial(): String  = loadTemplate("partials/footer.mustache")
 
 }
 

@@ -68,7 +68,9 @@ object NewSite extends Command {
       siteFolder / "static" / "js",
       siteFolder / "static" / "css",
       siteFolder / "static" / "img",
-      siteFolder / "templates"
+      siteFolder / "templates",
+      siteFolder / "templates" / "partials",
+      siteFolder / "templates" / "pages"
     ).foreach(p => Files.createDirectories(p))
 
     // Copy default config
@@ -92,26 +94,39 @@ object NewSite extends Command {
     }
 
     // Copy templates
-    List(
-      "blog",
-      "latest",
-      "page",
-      "site",
-      "tags",
-      "header",
-      "nav",
-      "footer"
-    ).map(_ + ".mustache")
-      .foreach { t =>
-        Using.resource(
-          getClass.getClassLoader.getResourceAsStream(s"site/templates/$t")
-        ) { is =>
-          Files.write(
-            siteFolder / "templates" / t,
-            is.readAllBytes()
-          )
-        }
+    // Main layout
+    Using.resource(
+      getClass.getClassLoader.getResourceAsStream("site/templates/site.mustache")
+    ) { is =>
+      Files.write(
+        siteFolder / "templates" / "site.mustache",
+        is.readAllBytes()
+      )
+    }
+
+    // Partials
+    List("header", "nav", "footer").foreach { t =>
+      Using.resource(
+        getClass.getClassLoader.getResourceAsStream(s"site/templates/partials/${t}.mustache")
+      ) { is =>
+        Files.write(
+          siteFolder / "templates" / "partials" / s"${t}.mustache",
+          is.readAllBytes()
+        )
       }
+    }
+
+    // Page templates
+    List("page", "blog", "latest", "tags").foreach { t =>
+      Using.resource(
+        getClass.getClassLoader.getResourceAsStream(s"site/templates/pages/${t}.mustache")
+      ) { is =>
+        Files.write(
+          siteFolder / "templates" / "pages" / s"${t}.mustache",
+          is.readAllBytes()
+        )
+      }
+    }
 
     // Copy static resources
     List(
