@@ -1,8 +1,9 @@
 # Blarg
 
-A fast, simple static site generator for Markdown content, built with Scala 3.
+A simple static site generator for Markdown content, built with Scala 3.
 
-Blarg transforms your Markdown files into a complete static website with blog support, tags, templating, and built-in link validation. Perfect for personal sites, blogs, documentation, and project pages.
+Blarg transforms your Markdown files into a complete static website with blog support, tags, templating, and built-in
+link validation. Perfect for personal sites, blogs, documentation, and project pages.
 
 ## Features
 
@@ -13,11 +14,11 @@ Blarg transforms your Markdown files into a complete static website with blog su
 - **Link Validation**: Catches broken internal links before deployment
 - **Live Development**: Watch mode rebuilds on file changes
 - **Built-in Server**: Serve your site locally for testing
-- **Fast**: Efficient builds with minimal dependencies
 
 ### Markdown Extensions
 
 Blarg supports these CommonMark extensions out of the box:
+
 - **Autolink** - Automatic URL linking
 - **Strikethrough** - `~~strikethrough~~` text
 - **Tables** - GitHub-flavored tables
@@ -29,17 +30,20 @@ Blarg supports these CommonMark extensions out of the box:
 
 ## Installation
 
+You can check the [GitHub releases](https://github.com/alterationx10/blarg/releases) page for pre-built linux-x64
+versions (should also work on Mac). If you want to build from source, read on.
+
 ### Prerequisites
 
-- Java 23 or later
+- Java 21 or later (defaults to Java 23)
 - Scala CLI (for building from source)
 
 ### Building from Source
 
 ```bash
-git clone https://github.com/yourusername/blarg.git
+git clone https://github.com/alterationx10/blarg.git
 cd blarg
-scala-cli package . -o blarg --assembly
+scala-cli --power package . -o blarg -f
 ```
 
 This creates a standalone executable `blarg` that you can move to your PATH.
@@ -113,9 +117,11 @@ Blarg will rebuild automatically when files change. Press Return to stop.
 Create a new site with the default template structure.
 
 **Options:**
+
 - `-d, --dir <path>` - Parent directory for the new site (default: `.`)
 
 **Examples:**
+
 ```bash
 blarg new my-blog
 blarg new my-blog -d ~/projects
@@ -126,10 +132,12 @@ blarg new my-blog -d ~/projects
 Build the static site from Markdown files.
 
 **Options:**
+
 - `-d, --dir <path>` - Path to site folder (default: `./site`)
 - `-w, --watch` - Watch for changes and rebuild automatically
 
 **Examples:**
+
 ```bash
 blarg build
 blarg build -d ./site
@@ -137,6 +145,7 @@ blarg build -d ./site --watch
 ```
 
 **Output:**
+
 - Generated files go to `../build/` relative to the site folder
 - Blog posts: `/YYYY/MM/DD/slug.html`
 - Pages: `/page-name.html`
@@ -147,11 +156,13 @@ blarg build -d ./site --watch
 Start a local HTTP server to preview your site.
 
 **Options:**
+
 - `-d, --dir <path>` - Directory to serve (default: `./build`)
 - `-p, --port <number>` - Port number (default: `9000`)
 - `--no-tty` - Don't wait for user input (useful in scripts)
 
 **Examples:**
+
 ```bash
 blarg serve
 blarg serve -p 8080
@@ -163,12 +174,14 @@ blarg serve -d ./build --no-tty
 Generate new pages or blog posts with frontmatter templates.
 
 **Options:**
+
 - `-b, --blog <title>` - Create a new blog post with the given title
 - `-p, --page <path>` - Create a new page at the given path
 - `-fm, --frontmatter <path>` - Add frontmatter to an existing file
 - `-d, --dir <path>` - Site root directory (default: `./site`)
 
 **Examples:**
+
 ```bash
 # Create a blog post
 blarg gen -b "My First Post"
@@ -193,6 +206,7 @@ blarg gen -fm content/old-post.md
 The `blarg.json` file in your site folder controls global site settings.
 
 **Example:**
+
 ```json
 {
   "siteTitle": "My Awesome Blog",
@@ -217,8 +231,7 @@ The `blarg.json` file in your site folder controls global site settings.
   ],
   "dynamic": {
     "socialLinks": {
-      "github": "https://github.com/yourusername",
-      "twitter": "https://twitter.com/yourusername"
+      "github": "https://github.com/yourusername"
     },
     "analytics": {
       "enabled": true,
@@ -229,14 +242,16 @@ The `blarg.json` file in your site folder controls global site settings.
 ```
 
 **Fields:**
+
 - `siteTitle` - Your site's name (used in templates)
 - `author` - Default author name
 - `navigation` - Array of navigation links
-  - `label` - Link text
-  - `href` - Link URL
+    - `label` - Link text
+    - `href` - Link URL
 - `dynamic` - Free-form JSON object for custom template variables
 
 **Accessing in Templates:**
+
 ```mustache
 <title>{{config.siteTitle}}</title>
 <p>By {{config.author}}</p>
@@ -255,6 +270,7 @@ The `blarg.json` file in your site folder controls global site settings.
 Frontmatter is YAML metadata at the top of Markdown files, enclosed by `---`.
 
 **Example:**
+
 ```markdown
 ---
 title: My Blog Post
@@ -275,16 +291,17 @@ Your content here...
 
 **Fields:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `title` | String | No | Page or post title |
-| `description` | String | No | Brief description/summary |
-| `author` | String | No | Author name (overrides site default) |
-| `published` | ISO 8601 Date | No | Publication date |
-| `lastUpdated` | ISO 8601 Date | No | Last modification date |
-| `tags` | Array[String] | No | List of tags for categorization |
+| Field         | Type          | Required | Description                          |
+|---------------|---------------|----------|--------------------------------------|
+| `title`       | String        | No       | Page or post title                   |
+| `description` | String        | No       | Brief description/summary            |
+| `author`      | String        | No       | Author name (overrides site default) |
+| `published`   | ISO 8601 Date | No       | Publication date                     |
+| `lastUpdated` | ISO 8601 Date | No       | Last modification date               |
+| `tags`        | Array[String] | No       | List of tags for categorization      |
 
 **Notes:**
+
 - All fields are optional
 - Dates must be in ISO 8601 format: `YYYY-MM-DDTHH:MM:SSZ`
 - Tags are used to generate the tags page automatically
@@ -297,25 +314,25 @@ Blarg uses Mustache for templating, with a hierarchical structure:
 ### Template Hierarchy
 
 1. **Site Template** (`templates/site.mustache`)
-   - Master layout wrapper
-   - Contains `{{{content}}}` placeholder for page content
+    - Master layout wrapper
+    - Contains `{{{content}}}` placeholder for page content
 
 2. **Content Templates** (`templates/pages/*.mustache`)
-   - Defines content structure
-   - Wrapped by site template
-   - Available templates:
-     - `page.mustache` - Static pages
-     - `blog.mustache` - Individual blog posts
-     - `tags.mustache` - Tag listing page
-     - `latest.mustache` - Recent posts page
+    - Defines content structure
+    - Wrapped by site template
+    - Available templates:
+        - `page.mustache` - Static pages
+        - `blog.mustache` - Individual blog posts
+        - `tags.mustache` - Tag listing page
+        - `latest.mustache` - Recent posts page
 
 3. **Partials** (`templates/partials/*.mustache`)
-   - Reusable components
-   - Inserted with `{{> partialName}}`
-   - Default partials:
-     - `header.mustache`
-     - `nav.mustache`
-     - `footer.mustache`
+    - Reusable components
+    - Inserted with `{{> partialName}}`
+    - Default partials:
+        - `header.mustache`
+        - `nav.mustache`
+        - `footer.mustache`
 
 ### Template Variables
 
@@ -443,6 +460,7 @@ YYYY-MM-DD-slug.md
 ```
 
 **Examples:**
+
 - `2025-01-15-my-first-post.md`
 - `2025-12-25-holiday-special.md`
 
@@ -495,6 +513,7 @@ site/static/img/logo.png → build/img/logo.png
 Reference static files in templates and Markdown using root-relative paths:
 
 ```html
+
 <link rel="stylesheet" href="/css/style.css">
 <img src="/img/logo.png" alt="Logo">
 ```
@@ -512,6 +531,7 @@ WARNING: Found 2 broken internal link(s):
 ```
 
 **Link Resolution:**
+
 - `/page` checks for `/page.html`, `/page/index.html`
 - `/page.html` checks directly
 - `/page/` checks for `/page/index.html`
@@ -525,54 +545,63 @@ WARNING: Found 2 broken internal link(s):
 ### Build Errors
 
 **"ERROR: Config file not found"**
+
 - Make sure `blarg.json` exists in your site folder
 - Check that you're pointing to the correct directory with `-d`
 
 **"ERROR: Failed to parse config file"**
+
 - Validate your JSON syntax at https://jsonlint.com
 - Ensure all required fields are present: `siteTitle`, `author`, `navigation`
 
 **"ERROR: Template not found"**
+
 - Verify all required templates exist in `site/templates/`:
-  - `site.mustache`
-  - `pages/page.mustache`
-  - `pages/blog.mustache`
-  - `pages/tags.mustache`
-  - `pages/latest.mustache`
-  - `partials/header.mustache`
-  - `partials/nav.mustache`
-  - `partials/footer.mustache`
+    - `site.mustache`
+    - `pages/page.mustache`
+    - `pages/blog.mustache`
+    - `pages/tags.mustache`
+    - `pages/latest.mustache`
+    - `partials/header.mustache`
+    - `partials/nav.mustache`
+    - `partials/footer.mustache`
 
 ### Build Warnings
 
 **"WARNING: Found broken internal link(s)"**
+
 - Review the reported broken links
 - Fix the href attributes in your Markdown or templates
 - Links should be absolute paths starting with `/`
 
 **"WARNING: Failed to copy static files"**
+
 - Check file permissions in the `site/static/` folder
 - Verify the build directory is writable
 
 ### Watch Mode Issues
 
 **Changes not triggering rebuild**
+
 - Make sure the file is inside the `site/` folder
 - Some text editors use atomic saves which may not trigger watch events
 - Try manually saving again or restart watch mode
 
 **Build fails after creating new directory**
+
 - This should now work automatically (fixed in latest version)
 - If issues persist, restart watch mode
 
 ### Server Issues
 
 **Port already in use**
+
 - Another process is using the port (default: 9000)
 - Use `-p` flag to specify a different port: `blarg serve -p 8080`
 - Find and stop the other process using the port
 
 **404 errors when serving**
+
 - Make sure you've built the site first: `blarg build`
 - Verify the correct directory with `-d ./build`
 - Check that the requested file exists in the build folder
@@ -623,45 +652,7 @@ rsync -av build/ user@server:/var/www/docs/
 
 ## Deployment
 
-Blarg generates a static site in the `build/` folder. Deploy it to any static hosting service:
-
-### GitHub Pages
-
-```bash
-# Build the site
-blarg build
-
-# Push to gh-pages branch
-cd build
-git init
-git add .
-git commit -m "Deploy site"
-git push -f git@github.com:username/repo.git main:gh-pages
-```
-
-### Netlify
-
-1. Build: `blarg build -d ./site`
-2. Publish directory: `build`
-3. Drag and drop the `build` folder or connect your Git repository
-
-### Vercel
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-cd build
-vercel
-```
-
-### rsync to Server
-
-```bash
-blarg build
-rsync -av --delete build/ user@server:/var/www/html/
-```
+Blarg generates a static site in the `build/` folder. Deploy it to any static hosting service.
 
 ## Tips and Best Practices
 
@@ -690,12 +681,11 @@ rsync -av --delete build/ user@server:/var/www/html/
 - Keep templates modular with partials
 - Use descriptive variable names in `dynamic` config
 - Test template changes locally before deploying
-- Validate HTML output with validators
 
 ### Version Control
 
 - Commit the `site/` folder (source content)
-- Add `build/` and `.blarg-cache` to `.gitignore`
+- make sure `build/` is added to `.gitignore`
 - Keep templates and config in version control
 - Document custom template variables in your README
 
@@ -710,9 +700,10 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 ## Credits
 
 Built with:
+
 - [Scala 3](https://www.scala-lang.org/)
-- [CommonMark](https://commonmark.org/) - Markdown parsing
-- Branch framework - CLI, templating, and HTTP server
+- [CommonMark Java](https://github.com/commonmark/commonmark-java) - Markdown parsing
+- [Branch framework](https://branch.alteration.dev) - CLI, templating, and HTTP server
 
 ---
 
