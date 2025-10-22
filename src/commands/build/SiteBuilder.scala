@@ -49,28 +49,34 @@ object SiteBuilder {
       HtmlRenderer.builder().build()
 
     def buildTimestamp: String = java.time.Instant.now().toString
-    def buildYear: Int = java.time.Year.now().getValue
+    def buildYear: Int         = java.time.Year.now().getValue
 
     // Track all generated pages for link validation
     private val generatedPages: mutable.Map[String, String] = mutable.Map.empty
     // Track static files as available resources
-    private val staticFiles: mutable.Set[String] = mutable.Set.empty
+    private val staticFiles: mutable.Set[String]            = mutable.Set.empty
 
     lazy val siteConfig: SiteConfig = {
       val configPath = siteFolder / "blarg.json"
       if !Files.exists(configPath) then {
         System.err.println(s"ERROR: Config file not found at: $configPath")
-        System.err.println(s"Please create a blarg.json file or run 'blarg new' to create a new site.")
+        System.err.println(
+          s"Please create a blarg.json file or run 'blarg new' to create a new site."
+        )
         System.exit(1)
         throw new RuntimeException("unreachable")
       }
 
       Json.decode[SiteConfig](Files.readString(configPath)) match {
         case scala.util.Success(cfg) => cfg
-        case scala.util.Failure(ex)   =>
-          System.err.println(s"ERROR: Failed to parse config file at: $configPath")
+        case scala.util.Failure(ex)  =>
+          System.err.println(
+            s"ERROR: Failed to parse config file at: $configPath"
+          )
           System.err.println(s"Reason: ${ex.getMessage}")
-          System.err.println(s"Please check your blarg.json is valid JSON with all required fields.")
+          System.err.println(
+            s"Please check your blarg.json is valid JSON with all required fields."
+          )
           System.exit(1)
           throw new RuntimeException("unreachable")
       }
@@ -97,15 +103,18 @@ object SiteBuilder {
               _thisBuild / path.relativeTo(siteFolder / "static")
             )
           else {
-            val destination = _thisBuild / path.relativeTo(siteFolder / "static")
+            val destination =
+              _thisBuild / path.relativeTo(siteFolder / "static")
             Files.copy(path, destination, StandardCopyOption.REPLACE_EXISTING)
             // Track static file for link validation
-            val fileUrl = "/" + destination.relativeTo(_thisBuild)
+            val fileUrl     = "/" + destination.relativeTo(_thisBuild)
             staticFiles.add(fileUrl)
           }
         }
     }.recover { case ex =>
-      System.err.println(s"WARNING: Failed to copy static files: ${ex.getMessage}")
+      System.err.println(
+        s"WARNING: Failed to copy static files: ${ex.getMessage}"
+      )
     }
 
     private def buildContent(
@@ -117,8 +126,7 @@ object SiteBuilder {
       val contentCollection: mutable.ListBuffer[ContentContext] =
         mutable.ListBuffer.empty
 
-      if !Files.exists(sourceFolder) then
-        return List.empty
+      if !Files.exists(sourceFolder) then return List.empty
 
       Files
         .walk(sourceFolder)
@@ -130,7 +138,7 @@ object SiteBuilder {
               _thisBuild / path.relativeTo(sourceFolder)
             )
           else {
-            val siteTemplate = contentLoader.loadSiteTemplate()
+            val siteTemplate   = contentLoader.loadSiteTemplate()
             val contentPartial = templateLoader()
 
             val content     = contentLoader.load(path)
@@ -195,7 +203,8 @@ object SiteBuilder {
           val htmlFn = fn + ".html"
           path.relativeTo(sourceFolder).getNameCount match {
             case 1 => _thisBuild / htmlFn
-            case _ => _thisBuild / path.relativeTo(sourceFolder).getParent / htmlFn
+            case _ =>
+              _thisBuild / path.relativeTo(sourceFolder).getParent / htmlFn
           }
         }
       )
@@ -262,7 +271,7 @@ object SiteBuilder {
               fn match {
                 case s"$year-$month-$day-$slug" =>
                   _thisBuild / year / month / day / s"$slug.html"
-                case _ =>
+                case _                          =>
                   _thisBuild / s"$fn.html"
               }
             case _ =>
@@ -322,7 +331,9 @@ object SiteBuilder {
         generatedPages.clear()
         staticFiles.clear()
       }.recover { case ex =>
-        System.err.println(s"WARNING: Failed to clean build directory: ${ex.getMessage}")
+        System.err.println(
+          s"WARNING: Failed to clean build directory: ${ex.getMessage}"
+        )
       }
 
     override def validateLinks(): Unit = {

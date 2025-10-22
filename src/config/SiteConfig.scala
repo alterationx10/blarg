@@ -1,6 +1,6 @@
 package config
 
-import dev.alteration.branch.friday.{JsonCodec, Json}
+import dev.alteration.branch.friday.{Json, JsonCodec}
 
 case class NavItem(
     label: String,

@@ -71,19 +71,19 @@ object PageFlag extends Flag[Path] {
 
 object Gen extends Command {
 
-  /**
-   * Convert a title to a URL-safe slug
-   * - Converts to lowercase
-   * - Replaces spaces and non-alphanumeric characters with hyphens
-   * - Removes consecutive hyphens
-   * - Trims leading/trailing hyphens
-   */
-  private def toSlug(title: String): String = {
-    title
-      .toLowerCase
-      .trim
-      .replaceAll("[^a-z0-9]+", "-")  // Replace non-alphanumeric with single hyphen
-      .replaceAll("^-+|-+$", "")       // Remove leading/trailing hyphens
+  /** Convert a title to a URL-safe slug
+    *   - Converts to lowercase
+    *   - Replaces spaces and non-alphanumeric characters with hyphens
+    *   - Removes consecutive hyphens
+    *   - Trims leading/trailing hyphens
+    */
+  private[gen] def toSlug(title: String): String = {
+    title.toLowerCase.trim
+      .replaceAll(
+        "[^a-z0-9]+",
+        "-"
+      )                          // Replace non-alphanumeric with single hyphen
+      .replaceAll("^-+|-+$", "") // Remove leading/trailing hyphens
   }
 
   override val description: String         = "Generate a new blog post or page"

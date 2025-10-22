@@ -87,7 +87,7 @@ object NewSite extends Command {
     Using.resource(
       getClass.getClassLoader.getResourceAsStream(".gitignore")
     ) { is =>
-      val gitignore   = projectFolder / ".gitignore"
+      val gitignore    = projectFolder / ".gitignore"
       val contentToAdd = new String(is.readAllBytes())
 
       if Files.exists(gitignore) && Files.isRegularFile(gitignore) then {
@@ -96,7 +96,8 @@ object NewSite extends Command {
         if !existingContent.contains(contentToAdd.trim) then {
           Files.writeString(
             gitignore,
-            existingContent + (if existingContent.endsWith("\n") then "" else "\n") + contentToAdd,
+            existingContent + (if existingContent.endsWith("\n") then ""
+                               else "\n") + contentToAdd,
             StandardOpenOption.WRITE
           )
         }

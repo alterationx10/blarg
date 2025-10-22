@@ -5,7 +5,7 @@ import dev.alteration.branch.ursula.command.{Command, CommandContext}
 import dev.alteration.branch.macaroni.runtimes.BranchExecutors
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 
-import java.nio.file.{FileSystems, Files, Path, StandardWatchEventKinds}
+import java.nio.file.{Files, FileSystems, Path, StandardWatchEventKinds}
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.*
 
@@ -36,10 +36,10 @@ object Build extends Command {
   override val arguments: Seq[Argument[?]] = Seq.empty
 
   override def actionWithContext(ctx: CommandContext): Unit = {
-    
-    val siteFolder = ctx.requiredFlag(DirFlag)
+
+    val siteFolder  = ctx.requiredFlag(DirFlag)
     val shouldWatch = ctx.booleanFlag(WatchFlag)
-    
+
     val sb = SiteBuilder(siteFolder)
     sb.cleanBuild()
     sb.copyStatic()
@@ -70,7 +70,7 @@ object Build extends Command {
       val bg = Future {
         while true do {
           try {
-            val key = watcher.take()
+            val key    = watcher.take()
             val events = key
               .pollEvents()
               .asScala
@@ -100,7 +100,5 @@ object Build extends Command {
 
   }
 
-  override def action(args: Seq[String]): Unit = {
-    
-  }
+  override def action(args: Seq[String]): Unit = {}
 }

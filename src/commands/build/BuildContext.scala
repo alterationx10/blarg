@@ -28,7 +28,9 @@ object BuildContext {
     Stache.obj(
       "siteTitle"  -> Str(sc.siteTitle),
       "author"     -> Str(sc.author),
-      "navigation" -> Arr(sc.navigation.map(summon[Conversion[NavItem, Stache]].apply)),
+      "navigation" -> Arr(
+        sc.navigation.map(summon[Conversion[NavItem, Stache]].apply)
+      ),
       "dynamic"    -> Stache.fromJson(sc.dynamic)
     )
 
@@ -90,10 +92,13 @@ object FrontMatter {
     Option.empty
   )
 
-  private def parseStringField(fm: Map[String, List[String]], key: String): Option[String] = {
+  private def parseStringField(
+      fm: Map[String, List[String]],
+      key: String
+  ): Option[String] = {
     fm.get(key)
       .map(_.mkString)
-      .filter(_.nonEmpty)  // Convert empty strings to None
+      .filter(_.nonEmpty) // Convert empty strings to None
   }
 
   def apply(fm: Map[String, List[String]]): FrontMatter = {
@@ -105,7 +110,10 @@ object FrontMatter {
         .flatMap(str => Try(Instant.parse(str)).toOption),
       parseStringField(fm, "lastUpdated")
         .flatMap(str => Try(Instant.parse(str)).toOption),
-      fm.get("tags").map(_.filter(_.nonEmpty))  // YAML already provides list, just filter empties
+      fm.get("tags")
+        .map(
+          _.filter(_.nonEmpty)
+        ) // YAML already provides list, just filter empties
     )
   }
 

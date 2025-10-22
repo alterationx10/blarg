@@ -1,8 +1,18 @@
 package commands.serve
 
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
-import dev.alteration.branch.spider.server.{FileServing, ServerConfig, SpiderServer}
-import dev.alteration.branch.ursula.args.{Argument, BooleanFlag, Flag, Flags, IntFlag}
+import dev.alteration.branch.spider.server.{
+  FileServing,
+  ServerConfig,
+  SpiderServer
+}
+import dev.alteration.branch.ursula.args.{
+  Argument,
+  BooleanFlag,
+  Flag,
+  Flags,
+  IntFlag
+}
 import dev.alteration.branch.ursula.command.{Command, CommandContext}
 
 import java.nio.file.Path
@@ -43,8 +53,8 @@ object Serve extends Command {
 
   override def actionWithContext(ctx: CommandContext): Unit = {
 
-    val port = ctx.requiredFlag(PortFlag)
-    val dir = ctx.requiredFlag(DirFlag)
+    val port  = ctx.requiredFlag(PortFlag)
+    val dir   = ctx.requiredFlag(DirFlag)
     val noTTY = ctx.booleanFlag(NoTTYFlag)
 
     val server = new SpiderServer(
@@ -71,8 +81,5 @@ object Serve extends Command {
 
   }
 
-  override def action(args: Seq[String]): Unit = {
-
-
-  }
+  override def action(args: Seq[String]): Unit = {}
 }
