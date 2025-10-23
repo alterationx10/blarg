@@ -1,6 +1,6 @@
 //> using scala 3
 //> using jvm 23
-//> using dep dev.alteration::branch:0.0.0-SNAPSHOT
+//> using dep dev.alteration::branch:0.0.13
 
 //> using  options -no-indent -rewrite -source:3.4-migration
 
