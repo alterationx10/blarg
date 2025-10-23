@@ -1,48 +1,15 @@
 <!doctype html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light dark"/>
-    <link rel="icon" href="/img/favicon.png"/>
-    <link rel="mask-icon" href="/img/logo.png" color="white">
-    <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.violet.min.css"
-    >
-
-    <title>
-        {{content.fm.title}}{{^content.fm.title}}Blarg!{{/content.fm.title}}
-    </title>
-    <meta name="keywords" content="{{content.fm.tags}}">
-    <meta name="author" content="{{content.fm.author}}">
-    <meta name="description" content="{{content.fm.description}}">
-</head>
+{{>header}}
 <body>
 <header class="container">
-    <nav>
-        <ul>
-            <li>
-                <a href="index.html" class="contrast">
-                    <img src="/img/logo.png" height="64" width="64" style="vertical-align:middle">
-                    <strong>Blarg!</strong>
-                </a>
-            </li>
-        </ul>
-        <ul>
-            <li><a href="/latest" class="contrast">Blog</a></li>
-            <li><a href="/tags" class="contrast">Tags</a></li>
-            <li><a href="/about" class="contrast">About</a></li>
-        </ul>
-    </nav>
+    {{>nav}}
 </header>
 <main class="container">
     <div id="site-content">
         {{>content}}
     </div>
 </main>
-<footer class="container">
-    <p>&copy; {{year}} me! All rights reserved.</p>
-</footer>
+{{>footer}}
 </body>
 </html>

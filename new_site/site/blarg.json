@@ -1,3 +1,24 @@
 {
-  siteTitle: "Test Site"
+  "siteTitle": "My Blarg! Site",
+  "author": "Your Name",
+  "navigation": [
+    {
+      "label": "Blog",
+      "href": "/latest"
+    },
+    {
+      "label": "Tags",
+      "href": "/tags"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    }
+  ],
+  "dynamic": {
+    "socialLinks": {
+      "github": "https://github.com/yourusername"
+    },
+    "siteDescription": "A blog about interesting things"
+  }
 }

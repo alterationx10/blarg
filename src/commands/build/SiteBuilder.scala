@@ -1,5 +1,8 @@
 package commands.build
 
+import config.SiteConfig
+import dev.alteration.branch.friday.Json
+import dev.alteration.branch.friday.Json.*
 import dev.alteration.branch.macaroni.extensions.PathExtensions.*
 import dev.alteration.branch.mustachio.Stache.Str
 import dev.alteration.branch.mustachio.{Mustachio, Stache}
@@ -9,7 +12,7 @@ import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
 import org.commonmark.renderer.markdown.MarkdownRenderer
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, StandardCopyOption}
 import java.util.Comparator
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
@@ -19,6 +22,7 @@ trait SiteBuilder {
   def copyStatic(): Unit
   def parseSite(): Unit
   def cleanBuild(): Unit
+  def validateLinks(): Unit
 }
 
 object SiteBuilder {
@@ -44,6 +48,51 @@ object SiteBuilder {
     val htmlRenderer: HtmlRenderer =
       HtmlRenderer.builder().build()
 
+    def buildTimestamp: String = java.time.Instant.now().toString
+    def buildYear: Int         = java.time.Year.now().getValue
+
+    // Track all generated pages for link validation
+    private val generatedPages: mutable.Map[String, String] = mutable.Map.empty
+    // Track static files as available resources
+    private val staticFiles: mutable.Set[String]            = mutable.Set.empty
+
+    lazy val siteConfig: SiteConfig = {
+      val configPath = siteFolder / "blarg.json"
+      if !Files.exists(configPath) then {
+        System.err.println(s"ERROR: Config file not found at: $configPath")
+        System.err.println(
+          s"Please create a blarg.json file or run 'blarg new' to create a new site."
+        )
+        System.exit(1)
+        throw new RuntimeException("unreachable")
+      }
+
+      Json.decode[SiteConfig](Files.readString(configPath)) match {
+        case scala.util.Success(cfg) => cfg
+        case scala.util.Failure(ex)  =>
+          System.err.println(
+            s"ERROR: Failed to parse config file at: $configPath"
+          )
+          System.err.println(s"Reason: ${ex.getMessage}")
+          System.err.println(
+            s"Please check your blarg.json is valid JSON with all required fields."
+          )
+          System.exit(1)
+          throw new RuntimeException("unreachable")
+      }
+    }
+
+    val contentLoader: ContentLoader = ContentLoader(siteFolder)
+
+    def partials(contentPartial: String): Stache.Obj = {
+      Stache.obj(
+        "header"  -> Str(contentLoader.loadHeaderPartial()),
+        "nav"     -> Str(contentLoader.loadNavPartial()),
+        "footer"  -> Str(contentLoader.loadFooterPartial()),
+        "content" -> Str(contentPartial)
+      )
+    }
+
     override def copyStatic(): Unit = Try {
       Files
         .walk(siteFolder.resolve("static"))
@@ -53,34 +102,46 @@ object SiteBuilder {
             Files.createDirectories(
               _thisBuild / path.relativeTo(siteFolder / "static")
             )
-          else
-            Files.copy(
-              path,
+          else {
+            val destination =
               _thisBuild / path.relativeTo(siteFolder / "static")
-            )
+            Files.copy(path, destination, StandardCopyOption.REPLACE_EXISTING)
+            // Track static file for link validation
+            val fileUrl     = "/" + destination.relativeTo(_thisBuild)
+            staticFiles.add(fileUrl)
+          }
         }
+    }.recover { case ex =>
+      System.err.println(
+        s"WARNING: Failed to copy static files: ${ex.getMessage}"
+      )
     }
 
-    private def buildPages(): List[ContentContext] = {
-      val pagesFolder = siteFolder / "pages"
-
+    private def buildContent(
+        sourceFolder: Path,
+        templateName: String,
+        templateLoader: () => String,
+        urlBuilder: (Path, Path, String) => Path
+    ): List[ContentContext] = {
       val contentCollection: mutable.ListBuffer[ContentContext] =
         mutable.ListBuffer.empty
 
+      if !Files.exists(sourceFolder) then return List.empty
+
       Files
-        .walk(pagesFolder)
+        .walk(sourceFolder)
         .filter(p => p.toString.endsWith(".md") || Files.isDirectory(p))
         .sorted(Comparator.naturalOrder())
         .forEach { path =>
           if Files.isDirectory(path) then
             Files.createDirectories(
-              _thisBuild / path.relativeTo(pagesFolder)
+              _thisBuild / path.relativeTo(sourceFolder)
             )
           else {
-            val siteTemplate = ContentLoader(siteFolder).loadSiteTemplate()
-            val pagePartial  = ContentLoader(siteFolder).loadPageTemplate()
+            val siteTemplate   = contentLoader.loadSiteTemplate()
+            val contentPartial = templateLoader()
 
-            val content     = ContentLoader(siteFolder).load(path)
+            val content     = contentLoader.load(path)
             val contentNode = mdParser.parse(content)
 
             val visitor     = new YamlFrontMatterVisitor()
@@ -91,12 +152,12 @@ object SiteBuilder {
             val fn = path
               .relativeTo(path.getParent)
               .toString
-              .stripSuffix(".md") + ".html"
+              .stripSuffix(".md")
 
-            val destination = path.relativeTo(pagesFolder).getNameCount match {
-              case 1 => _thisBuild / fn
-              case _ => _thisBuild / path.relativeTo(pagesFolder).getParent / fn
-            }
+            val destination = urlBuilder(path, sourceFolder, fn)
+
+            if destination.getNameCount > 0 then
+              Files.createDirectories(destination.getParent)
 
             val cctx = ContentContext(
               content = htmlRenderer.render(contentNode),
@@ -108,35 +169,53 @@ object SiteBuilder {
             contentCollection.addOne(cctx)
 
             val ctx = BuildContext(
-              content = cctx
+              content = cctx,
+              config = siteConfig,
+              buildTime = buildTimestamp,
+              year = buildYear
             )
 
             val siteContent = Mustachio.render(
               siteTemplate,
               ctx,
-              Some(
-                Stache.obj(
-                  "content" -> Str(pagePartial)
-                )
-              )
+              Some(partials(contentPartial))
             )
 
             Files.writeString(
               destination,
               siteContent
             )
+
+            // Track generated page for link validation
+            val pageUrl = "/" + destination.relativeTo(_thisBuild)
+            generatedPages.put(pageUrl, siteContent)
           }
         }
       contentCollection.toList
+    }
 
+    private def buildPages(): List[ContentContext] = {
+      buildContent(
+        siteFolder / "pages",
+        "page",
+        () => contentLoader.loadPageTemplate(),
+        (path, sourceFolder, fn) => {
+          val htmlFn = fn + ".html"
+          path.relativeTo(sourceFolder).getNameCount match {
+            case 1 => _thisBuild / htmlFn
+            case _ =>
+              _thisBuild / path.relativeTo(sourceFolder).getParent / htmlFn
+          }
+        }
+      )
     }
 
     private def buildTags(
         contentList: List[ContentContext]
     ): Unit = {
 
-      val siteTemplate    = ContentLoader(siteFolder).loadSiteTemplate()
-      val contentTemplate = ContentLoader(siteFolder).loadTagTemplate()
+      val siteTemplate    = contentLoader.loadSiteTemplate()
+      val contentTemplate = contentLoader.loadTagTemplate()
 
       val sortedTags =
         contentList
@@ -162,13 +241,12 @@ object SiteBuilder {
       val siteContent = Mustachio.render(
         siteTemplate,
         BuildContext(
-          content = cctx
+          content = cctx,
+          config = siteConfig,
+          buildTime = buildTimestamp,
+          year = buildYear
         ),
-        Some(
-          Stache.obj(
-            "content" -> Str(contentTemplate)
-          )
-        )
+        Some(partials(contentTemplate))
       )
 
       Files.writeString(
@@ -176,97 +254,39 @@ object SiteBuilder {
         siteContent
       )
 
+      // Track generated page for link validation
+      generatedPages.put("/tags.html", siteContent)
+
     }
 
     private def buildBlog(): List[ContentContext] = {
-      val blogFolder = siteFolder / "blog"
-
-      val contentCollection: mutable.ListBuffer[ContentContext] =
-        mutable.ListBuffer.empty
-
-      Files
-        .walk(blogFolder)
-        .filter(p => p.toString.endsWith(".md") || Files.isDirectory(p))
-        .sorted(Comparator.naturalOrder())
-        .forEach { path =>
-          if Files.isDirectory(path) then
-            Files.createDirectories(
-              _thisBuild / path.relativeTo(blogFolder)
-            )
-          else {
-            val siteTemplate = ContentLoader(siteFolder).loadSiteTemplate()
-            val blogPartial  = ContentLoader(siteFolder).loadBlogTemplate()
-
-            val content     = ContentLoader(siteFolder).load(path)
-            val contentNode = mdParser.parse(content)
-
-            val visitor     = new YamlFrontMatterVisitor()
-            contentNode.accept(visitor)
-            val frontMatter = visitor.getData.asScala.toMap
-              .map((k, v) => (k -> v.asScala.toList))
-
-            val fn: String = path
-              .relativeTo(path.getParent)
-              .toString
-              .stripSuffix(".md")
-
-            val destination = path.relativeTo(blogFolder).getNameCount match {
-              case 1 =>
-                fn match {
-                  case s"$year-$month-$day-$slug" =>
-                    _thisBuild / year / month / day / s"$slug.html"
-                  case _                          =>
-                    _thisBuild / s"$fn.html"
-                }
-              case _ =>
-                _thisBuild / path.relativeTo(blogFolder).getParent / s"$fn.html"
-            }
-
-            if destination.getNameCount > 0 then
-              Files.createDirectories(destination.getParent)
-
-            val cctx = ContentContext(
-              content = htmlRenderer.render(contentNode),
-              fm = FrontMatter(frontMatter),
-              href = "/" + destination.relativeTo(_thisBuild),
-              summary = summary(contentNode)
-            )
-            contentCollection.addOne(cctx)
-
-            val ctx = BuildContext(
-              content = cctx
-            )
-
-            val siteContent = Mustachio.render(
-              siteTemplate,
-              ctx,
-              Some(
-                Stache.obj(
-                  "content" -> Str(blogPartial)
-                )
-              )
-            )
-
-            Files.writeString(
-              destination,
-              siteContent
-            )
+      buildContent(
+        siteFolder / "blog",
+        "blog",
+        () => contentLoader.loadBlogTemplate(),
+        (path, sourceFolder, fn) => {
+          path.relativeTo(sourceFolder).getNameCount match {
+            case 1 =>
+              // Parse date-based filename: YYYY-MM-DD-slug.md
+              fn match {
+                case s"$year-$month-$day-$slug" =>
+                  _thisBuild / year / month / day / s"$slug.html"
+                case _                          =>
+                  _thisBuild / s"$fn.html"
+              }
+            case _ =>
+              _thisBuild / path.relativeTo(sourceFolder).getParent / s"$fn.html"
           }
-
         }
-      contentCollection.toList
-
+      )
     }
 
     private def buildLatest(
         contentList: List[ContentContext]
     ): Unit = {
 
-      val siteTemplate    = ContentLoader(siteFolder).loadSiteTemplate()
-      val contentTemplate = ContentLoader(siteFolder).loadLatestTemplate()
-
-      val sortedTags =
-        contentList.flatMap(_.fm.tags.getOrElse(List.empty)).distinct.sorted
+      val siteTemplate    = contentLoader.loadSiteTemplate()
+      val contentTemplate = contentLoader.loadLatestTemplate()
 
       val cctx = Stache.Arr(
         contentList.map(ContentContext.given_Conversion_ContentContext_Stache)
@@ -275,19 +295,21 @@ object SiteBuilder {
       val siteContent = Mustachio.render(
         siteTemplate,
         BuildContext(
-          content = cctx
+          content = cctx,
+          config = siteConfig,
+          buildTime = buildTimestamp,
+          year = buildYear
         ),
-        Some(
-          Stache.obj(
-            "content" -> Str(contentTemplate)
-          )
-        )
+        Some(partials(contentTemplate))
       )
 
       Files.writeString(
         _thisBuild / "latest.html",
         siteContent
       )
+
+      // Track generated page for link validation
+      generatedPages.put("/latest.html", siteContent)
 
     }
 
@@ -300,11 +322,33 @@ object SiteBuilder {
 
     override def cleanBuild(): Unit =
       Try {
-        Files
-          .walk(_thisBuild)
-          .sorted(Comparator.reverseOrder()) // Files before Dirs
-          .forEach(Files.deleteIfExists(_))
+        if Files.exists(_thisBuild) then
+          Files
+            .walk(_thisBuild)
+            .sorted(Comparator.reverseOrder()) // Files before Dirs
+            .forEach(Files.deleteIfExists(_))
+        // Clear tracking data for new build
+        generatedPages.clear()
+        staticFiles.clear()
+      }.recover { case ex =>
+        System.err.println(
+          s"WARNING: Failed to clean build directory: ${ex.getMessage}"
+        )
       }
+
+    override def validateLinks(): Unit = {
+      // Combine all available pages (HTML pages + static resources)
+      val availablePages = generatedPages.keySet.toSet ++ staticFiles.toSet
+
+      // Validate links in all generated HTML pages
+      val brokenLinks = LinkValidator.validateLinks(
+        generatedPages.toMap,
+        availablePages
+      )
+
+      // Report any broken links
+      LinkValidator.reportBrokenLinks(brokenLinks)
+    }
   }
 
 }
