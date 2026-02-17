@@ -1,11 +1,10 @@
 package commands.newsite
 
 import commands.build.FrontMatter
-import dev.alteration.branch.macaroni.extensions.PathExtensions.*
-import dev.alteration.branch.ursula.args.{Argument, Flag}
-import dev.alteration.branch.ursula.command.Command
+import os.*
+import ursula.args.{Argument, Flag}
+import ursula.command.Command
 
-import java.nio.file.{Files, Path, StandardOpenOption}
 import java.time.{Instant, ZoneId}
 import java.time.format.DateTimeFormatter
 import scala.util.Using
@@ -16,10 +15,10 @@ object DirFlag extends Flag[Path] {
   override val shortKey: String      = "d"
   override val description: String   =
     "The path to create the project folder in. Defaults to ."
-  override val default: Option[Path] = Some(wd)
+  override val default: Option[Path] = Some(os.pwd)
 
   override def parse: PartialFunction[String, Path] = { case str =>
-    wd / str.stripPrefix("/")
+    os.pwd / os.RelPath(str.stripPrefix("/"))
   }
 }
 
@@ -54,7 +53,7 @@ object NewSite extends Command {
             case None       => p
           }
         }
-        .getOrElse(wd)
+        .getOrElse(os.pwd)
     }
 
     val siteFolder = projectFolder / "site"
@@ -71,7 +70,7 @@ object NewSite extends Command {
       siteFolder / "templates",
       siteFolder / "templates" / "partials",
       siteFolder / "templates" / "pages"
-    ).foreach(p => Files.createDirectories(p))
+    ).foreach(p => os.makeDir.all(p))
 
     // Helper to load resource with better error handling
     def loadResource(path: String, destination: Path): Unit = {
@@ -85,7 +84,7 @@ object NewSite extends Command {
         System.exit(1)
       }
       Using.resource(resourceStream) { is =>
-        Files.write(destination, is.readAllBytes())
+        os.write(destination, is.readAllBytes())
       }
     }
 
@@ -94,25 +93,24 @@ object NewSite extends Command {
 
     // Add a gitignore
     val gitignoreStream =
-      getClass.getClassLoader.getResourceAsStream(".gitignore")
+      getClass.getClassLoader.getResourceAsStream("gitignore")
     if gitignoreStream != null then {
       Using.resource(gitignoreStream) { is =>
         val gitignore    = projectFolder / ".gitignore"
         val contentToAdd = new String(is.readAllBytes())
 
-        if Files.exists(gitignore) && Files.isRegularFile(gitignore) then {
+        if os.exists(gitignore) && !os.isDir(gitignore) then {
           // Check if content already exists to avoid duplicates
-          val existingContent = Files.readString(gitignore)
+          val existingContent = os.read(gitignore)
           if !existingContent.contains(contentToAdd.trim) then {
-            Files.writeString(
+            os.write.over(
               gitignore,
               existingContent + (if existingContent.endsWith("\n") then ""
-                                 else "\n") + contentToAdd,
-              StandardOpenOption.WRITE
+                                 else "\n") + contentToAdd
             )
           }
         } else {
-          Files.writeString(gitignore, contentToAdd, StandardOpenOption.CREATE)
+          os.write(gitignore, contentToAdd)
         }
       }
     }
@@ -141,7 +139,7 @@ object NewSite extends Command {
 
     // Copy static resources
     List("img/favicon.png", "img/logo.png").foreach { a =>
-      loadResource(s"site/static/$a", siteFolder / "static" / a)
+      loadResource(s"site/static/$a", siteFolder / "static" / os.RelPath(a))
     }
 
     // copy pages
@@ -156,7 +154,7 @@ object NewSite extends Command {
       .withZone(ZoneId.systemDefault())
 
     val blogTitle = dtf.format(Instant.now()) + "-" + "first-post.md"
-    Files.writeString(
+    os.write(
       siteFolder / "blog" / blogTitle,
       FrontMatter
         .blank(Some("First Post"))

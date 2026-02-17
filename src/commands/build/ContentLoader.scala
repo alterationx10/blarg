@@ -1,7 +1,6 @@
 package commands.build
 
-import dev.alteration.branch.macaroni.extensions.PathExtensions.*
-import java.nio.file.{Files, Path}
+import os.*
 
 trait ContentLoader {
   def load(path: Path): String
@@ -26,14 +25,14 @@ object ContentLoader {
     val templates: Path = root / "templates"
 
     override def load(path: Path): String = {
-      if !Files.exists(path) then
+      if !os.exists(path) then
         throw new RuntimeException(s"File not found: $path")
-      Files.readString(path)
+      os.read(path)
     }
 
     override def loadTemplate(fileName: String): String = {
-      val templatePath = templates / fileName
-      if !Files.exists(templatePath) then {
+      val templatePath = templates / os.RelPath(fileName)
+      if !os.exists(templatePath) then {
         System.err.println(s"ERROR: Template not found: $templatePath")
         System.err.println(
           s"Please ensure the template file exists in your site/templates directory."

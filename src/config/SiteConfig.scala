@@ -1,15 +1,15 @@
 package config
 
-import dev.alteration.branch.friday.{Json, JsonCodec}
+import upickle.default.ReadWriter
 
 case class NavItem(
     label: String,
     href: String
-) derives JsonCodec
+) derives ReadWriter
 
 case class SiteConfig(
     siteTitle: String,
     author: String,
     navigation: List[NavItem],
-    dynamic: Json
-) derives JsonCodec
+    dynamic: ujson.Value
+) derives ReadWriter

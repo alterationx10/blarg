@@ -1,21 +1,8 @@
 package commands.serve
 
-import dev.alteration.branch.macaroni.extensions.PathExtensions.*
-import dev.alteration.branch.spider.server.{
-  FileServing,
-  ServerConfig,
-  SpiderServer
-}
-import dev.alteration.branch.ursula.args.{
-  Argument,
-  BooleanFlag,
-  Flag,
-  Flags,
-  IntFlag
-}
-import dev.alteration.branch.ursula.command.{Command, CommandContext}
-
-import java.nio.file.Path
+import os.*
+import ursula.args.{Argument, BooleanFlag, Flag, Flags, IntFlag}
+import ursula.command.{Command, CommandContext}
 
 object Serve extends Command {
 
@@ -36,8 +23,8 @@ object Serve extends Command {
     "dir",
     "d",
     "The path to serve files from. Defaults to ./build",
-    parser = p => wd / p,
-    default = Some(wd / "build")
+    parser = p => os.pwd / os.RelPath(p),
+    default = Some(os.pwd / "build")
   )
 
   override val description: String         = "Start an HTTP server that serves files"
@@ -57,22 +44,28 @@ object Serve extends Command {
     val dir   = ctx.requiredFlag(DirFlag)
     val noTTY = ctx.booleanFlag(NoTTYFlag)
 
-    val server = new SpiderServer(
-      port = port,
-      router = FileServing.createRouter(dir),
-      config = ServerConfig.default
-    )
+    val routes = new cask.Routes {
+      @cask.staticFiles("/")
+      def files() = dir.toString
+      initialize()
+    }
+
+    val server = new cask.Main {
+      override def port = ctx.requiredFlag(PortFlag)
+      override def host = "localhost"
+      override def allRoutes = Seq(routes)
+    }
 
     println(s"Server started at http://localhost:$port")
     println(s"Serving files from: $dir")
 
     if noTTY then {
       println(s"Press Ctrl+C to exit")
-      server.start() // Blocking call
+      server.main(Array.empty)
     } else {
       println(s"Press return to exit")
       // Start server in background thread
-      val serverThread = new Thread(() => server.start())
+      val serverThread = new Thread(() => server.main(Array.empty))
       serverThread.start()
       scala.io.StdIn.readLine()
       println(s"Shutting down server")
