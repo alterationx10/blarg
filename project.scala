@@ -7,7 +7,8 @@
 //> using dep com.lihaoyi::cask:0.11.3
 //> using javaOpt --sun-misc-unsafe-memory-access=allow
 
-//> using  options -no-indent -rewrite -source:3.4-migration
+//> using javaOpt --sun-misc-unsafe-memory-access=allow
+//> using options -no-indent -rewrite -source:3.4-migration
 
 //> using resourceDir ./new_site
 //> using test.dep org.scalameta::munit:1.2.2
