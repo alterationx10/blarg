@@ -41,7 +41,7 @@ object SiteBuilder {
     val mdParser: Parser = MDParser()
 
     val htmlRenderer: HtmlRenderer =
-      HtmlRenderer.builder().extensions(MDParser.extensions).build()
+      HtmlRenderer.builder().extensions(MDParser.extensions.asJava).build()
 
     def buildTimestamp: String = java.time.Instant.now().toString
     def buildYear: Int         = java.time.Year.now().getValue
