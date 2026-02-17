@@ -7,7 +7,6 @@
 //> using dep com.lihaoyi::cask:0.11.3
 //> using javaOpt --sun-misc-unsafe-memory-access=allow
 
-//> using javaOpt --sun-misc-unsafe-memory-access=allow
 //> using options -no-indent -rewrite -source:3.4-migration
 
 //> using resourceDir ./new_site

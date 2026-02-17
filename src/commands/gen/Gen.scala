@@ -14,7 +14,8 @@ object FrontmatterFlag extends Flag[Path] {
   override val shortKey: String    = "fm"
   override val description: String = "Append frontmatter to an existing file"
 
-  override def parse: PartialFunction[String, Path] = str => os.pwd / str
+  override def parse: PartialFunction[String, Path] = str =>
+    os.pwd / os.RelPath(str)
 
   override val exclusive: Option[Seq[Flag[?]]] = Some(
     Seq(
@@ -34,7 +35,7 @@ object DirFlag extends Flag[Path] {
   override val default: Option[Path] = Some(os.pwd / "site")
 
   override def parse: PartialFunction[String, Path] = { case str =>
-    os.pwd / str
+    os.pwd / os.RelPath(str)
   }
 }
 
@@ -61,7 +62,7 @@ object PageFlag extends Flag[Path] {
   override val description: String = "Generate a new page"
 
   override def parse: PartialFunction[String, Path] = str =>
-    os.pwd / str.stripPrefix("/")
+    os.pwd / os.RelPath(str.stripPrefix("/"))
 
   override val exclusive: Option[Seq[Flag[?]]] = Some(
     Seq(BlogFlag, FrontmatterFlag)
