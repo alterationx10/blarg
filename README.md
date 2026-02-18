@@ -35,7 +35,7 @@ versions (should also work on Mac). If you want to build from source, read on.
 
 ### Prerequisites
 
-- Java 21 or later (defaults to Java 23)
+- Java 25 or later
 - Scala CLI (for building from source)
 
 ### Building from Source
@@ -470,7 +470,7 @@ Blog posts are organized by date in the generated site:
 
 ```
 site/blog/2025-01-15-my-first-post.md
-  → build/2025/01/15/my-first-post.html
+  -> build/2025/01/15/my-first-post.html
 ```
 
 ### Nested Blog Posts
@@ -479,7 +479,7 @@ You can organize blog posts in subdirectories:
 
 ```
 site/blog/tutorials/2025-01-15-getting-started.md
-  → build/tutorials/2025-01-15-getting-started.html
+  -> build/tutorials/2025-01-15-getting-started.html
 ```
 
 ## Pages
@@ -487,8 +487,8 @@ site/blog/tutorials/2025-01-15-getting-started.md
 Static pages in the `site/pages/` directory become root-level pages:
 
 ```
-site/pages/about.md → build/about.html
-site/pages/index.md → build/index.html
+site/pages/about.md -> build/about.html
+site/pages/index.md -> build/index.html
 ```
 
 ### Nested Pages
@@ -496,8 +496,8 @@ site/pages/index.md → build/index.html
 Create subdirectories for organized page structure:
 
 ```
-site/pages/docs/guide.md → build/docs/guide.html
-site/pages/projects/web-app.md → build/projects/web-app.html
+site/pages/docs/guide.md -> build/docs/guide.html
+site/pages/projects/web-app.md -> build/projects/web-app.html
 ```
 
 ## Static Files
@@ -505,9 +505,9 @@ site/pages/projects/web-app.md → build/projects/web-app.html
 Files in `site/static/` are copied to the build folder as-is:
 
 ```
-site/static/css/style.css → build/css/style.css
-site/static/js/main.js → build/js/main.js
-site/static/img/logo.png → build/img/logo.png
+site/static/css/style.css -> build/css/style.css
+site/static/js/main.js -> build/js/main.js
+site/static/img/logo.png -> build/img/logo.png
 ```
 
 Reference static files in templates and Markdown using root-relative paths:
@@ -540,162 +540,17 @@ WARNING: Found 2 broken internal link(s):
 - Fragments (`#anchor`) and query strings (`?param=value`) are ignored
 - Relative links (like `../other.html`) are not validated
 
-## Troubleshooting
+## Development
 
-### Build Errors
+Requires [Scala CLI](https://scala-cli.virtuslab.org/) and JVM 25+.
 
-**"ERROR: Config file not found"**
+```sh
+# Run locally from source
+scala-cli run . -- build -d ./site
 
-- Make sure `blarg.json` exists in your site folder
-- Check that you're pointing to the correct directory with `-d`
-
-**"ERROR: Failed to parse config file"**
-
-- Validate your JSON syntax at https://jsonlint.com
-- Ensure all required fields are present: `siteTitle`, `author`, `navigation`
-
-**"ERROR: Template not found"**
-
-- Verify all required templates exist in `site/templates/`:
-    - `site.mustache`
-    - `pages/page.mustache`
-    - `pages/blog.mustache`
-    - `pages/tags.mustache`
-    - `pages/latest.mustache`
-    - `partials/header.mustache`
-    - `partials/nav.mustache`
-    - `partials/footer.mustache`
-
-### Build Warnings
-
-**"WARNING: Found broken internal link(s)"**
-
-- Review the reported broken links
-- Fix the href attributes in your Markdown or templates
-- Links should be absolute paths starting with `/`
-
-**"WARNING: Failed to copy static files"**
-
-- Check file permissions in the `site/static/` folder
-- Verify the build directory is writable
-
-### Watch Mode Issues
-
-**Changes not triggering rebuild**
-
-- Make sure the file is inside the `site/` folder
-- Some text editors use atomic saves which may not trigger watch events
-- Try manually saving again or restart watch mode
-
-**Build fails after creating new directory**
-
-- This should now work automatically (fixed in latest version)
-- If issues persist, restart watch mode
-
-### Server Issues
-
-**Port already in use**
-
-- Another process is using the port (default: 9000)
-- Use `-p` flag to specify a different port: `blarg serve -p 8080`
-- Find and stop the other process using the port
-
-**404 errors when serving**
-
-- Make sure you've built the site first: `blarg build`
-- Verify the correct directory with `-d ./build`
-- Check that the requested file exists in the build folder
-
-## Workflow Examples
-
-### Blog Post Workflow
-
-```bash
-# 1. Generate a new post
-blarg gen -b "How to Use Blarg"
-
-# 2. Edit the generated file
-vim site/blog/YYYY-MM-DD-how-to-use-blarg.md
-
-# 3. Build in watch mode for live preview
-blarg build --watch &
-
-# 4. Serve the site
-blarg serve
-
-# 5. Preview at http://localhost:9000
-# Make changes and see them rebuild automatically
-
-# 6. Stop watch mode (press Return)
-# Deploy the build/ folder to your hosting
+# Run tests
+scala-cli test .
 ```
-
-### Documentation Site Workflow
-
-```bash
-# 1. Create the site
-blarg new my-docs
-
-# 2. Generate documentation pages
-cd my-docs
-blarg gen -p getting-started.md
-blarg gen -p api-reference.md
-blarg gen -p tutorials/basic.md
-blarg gen -p tutorials/advanced.md
-
-# 3. Build and serve
-blarg build && blarg serve
-
-# 4. Deploy
-rsync -av build/ user@server:/var/www/docs/
-```
-
-## Deployment
-
-Blarg generates a static site in the `build/` folder. Deploy it to any static hosting service.
-
-## Tips and Best Practices
-
-### Content Organization
-
-- Use descriptive filenames for pages
-- Organize related content in subdirectories
-- Use consistent tag names across posts (case-sensitive!)
-- Keep static assets organized by type (css/, js/, img/)
-
-### Performance
-
-- Optimize images before adding to `static/img/`
-- Minimize CSS and JavaScript for production
-- Use appropriate image formats (WebP, optimized PNG/JPEG)
-
-### Writing
-
-- Write clear, descriptive frontmatter titles
-- Add descriptions for better SEO
-- Use tags consistently for better navigation
-- Keep the first paragraph concise (used as summary)
-
-### Templates
-
-- Keep templates modular with partials
-- Use descriptive variable names in `dynamic` config
-- Test template changes locally before deploying
-
-### Version Control
-
-- Commit the `site/` folder (source content)
-- make sure `build/` is added to `.gitignore`
-- Keep templates and config in version control
-- Document custom template variables in your README
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues and pull requests.
-
-## License
-
-[Your license here]
 
 ## Credits
 
@@ -703,8 +558,8 @@ Built with:
 
 - [Scala 3](https://www.scala-lang.org/)
 - [CommonMark Java](https://github.com/commonmark/commonmark-java) - Markdown parsing
-- [Branch framework](https://branch.alteration.dev) - CLI, templating, and HTTP server
-
----
-
-**Happy blogging with Blarg!** 🎉
+- [Mustachio](https://github.com/alterationx10/mustachio) - Mustache templating
+- [Ursula](https://github.com/alterationx10/ursula) - CLI framework
+- [os-lib](https://github.com/com-lihaoyi/os-lib) - File system operations
+- [Cask](https://github.com/com-lihaoyi/cask) - HTTP server
+- [uPickle](https://github.com/com-lihaoyi/upickle) - JSON parsing
