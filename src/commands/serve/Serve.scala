@@ -1,5 +1,8 @@
 package commands.serve
 
+import cask.endpoints.{staticFiles, QueryParamReader, StaticUtil}
+import cask.model.{Request, Response}
+import cask.router.HttpEndpoint
 import os.*
 import ursula.args.{Argument, BooleanFlag, Flag, Flags, IntFlag}
 import ursula.command.{Command, CommandContext}
@@ -45,8 +48,8 @@ object Serve extends Command {
     val noTTY = ctx.booleanFlag(NoTTYFlag)
 
     val routes = new cask.Routes {
-      @cask.staticFiles("/")
-      def files() = dir.toString
+      @blargFiles("/")
+      def files(): String = dir.toString
       initialize()
     }
 
