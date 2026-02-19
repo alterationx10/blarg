@@ -244,7 +244,7 @@ class FrontMatterSuite extends FunSuite {
 
     // When converted to Stache (for templates), dates should be formatted
     val stache =
-      summon[Conversion[FrontMatter, dev.alteration.branch.mustachio.Stache]]
+      summon[Conversion[FrontMatter, mustachio.Stache]]
         .apply(fm)
 
     // This tests the conversion happens without error
@@ -348,5 +348,21 @@ class FrontMatterSuite extends FunSuite {
     // Current behavior: whitespace-only strings are kept as Some
     // This documents the behavior - may want to change in future
     assert(fm.title.isDefined || fm.title.isEmpty)
+  }
+
+  test("FrontMatter to Stache conversion") {
+    val fm: FrontMatter = FrontMatter(
+      title = Some("Hello"),
+      description = None,
+      author = Some("Auth"),
+      published = None,
+      lastUpdated = None,
+      tags = Some(List("x"))
+    )
+    val stache: mustachio.Stache = fm
+    val obj = stache.asInstanceOf[mustachio.Stache.Obj]
+    assertEquals(obj.value("title"), mustachio.Stache.Str("Hello"))
+    assertEquals(obj.value("description"), mustachio.Stache.Null)
+    assertEquals(obj.value("author"), mustachio.Stache.Str("Auth"))
   }
 }

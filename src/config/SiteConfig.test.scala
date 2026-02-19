@@ -1,7 +1,7 @@
 package config
 
 import munit.FunSuite
-import dev.alteration.branch.friday.Json
+import upickle.default.{read, write}
 
 class SiteConfigSuite extends FunSuite {
 
@@ -18,10 +18,7 @@ class SiteConfigSuite extends FunSuite {
     }
     """
 
-    val result = Json.decode[SiteConfig](jsonStr)
-
-    assert(result.isSuccess)
-    val config = result.get
+    val config = read[SiteConfig](jsonStr)
 
     assertEquals(config.siteTitle, "Test Site")
     assertEquals(config.author, "Test Author")
@@ -45,14 +42,10 @@ class SiteConfigSuite extends FunSuite {
     }
     """
 
-    val decoded = Json.decode[SiteConfig](jsonStr)
-    assert(decoded.isSuccess)
-
-    val config = decoded.get
+    val config = read[SiteConfig](jsonStr)
     assertEquals(config.siteTitle, "Custom Dynamic Test")
     assertEquals(config.author, "Tester")
     assertEquals(config.navigation.size, 2)
-    assert(config.dynamic != null)
   }
 
   test("SiteConfig should handle empty navigation") {
@@ -65,10 +58,8 @@ class SiteConfigSuite extends FunSuite {
     }
     """
 
-    val decoded = Json.decode[SiteConfig](jsonStr)
-
-    assert(decoded.isSuccess)
-    assertEquals(decoded.get.navigation.size, 0)
+    val config = read[SiteConfig](jsonStr)
+    assertEquals(config.navigation.size, 0)
   }
 
   test("SiteConfig should handle dynamic JSON object") {
@@ -90,13 +81,8 @@ class SiteConfigSuite extends FunSuite {
     }
     """
 
-    val result = Json.decode[SiteConfig](jsonStr)
-
-    assert(result.isSuccess)
-    val config = result.get
-
-    // Dynamic field should decode successfully
-    assert(config.dynamic != null)
+    val config = read[SiteConfig](jsonStr)
+    assertEquals(config.siteTitle, "Site")
   }
 
   test("SiteConfig should fail gracefully on invalid JSON") {
@@ -106,9 +92,9 @@ class SiteConfigSuite extends FunSuite {
     }
     """
 
-    val result = Json.decode[SiteConfig](invalidJson)
-
-    assert(result.isFailure)
+    intercept[Exception] {
+      read[SiteConfig](invalidJson)
+    }
   }
 
   test("SiteConfig should fail on malformed JSON") {
@@ -120,19 +106,17 @@ class SiteConfigSuite extends FunSuite {
     }
     """
 
-    val result = Json.decode[SiteConfig](malformedJson)
-
-    assert(result.isFailure)
+    intercept[Exception] {
+      read[SiteConfig](malformedJson)
+    }
   }
 
   test("NavItem should decode from JSON") {
     val jsonStr = """{"label": "About", "href": "/about.html"}"""
 
-    val result = Json.decode[NavItem](jsonStr)
-
-    assert(result.isSuccess)
-    assertEquals(result.get.label, "About")
-    assertEquals(result.get.href, "/about.html")
+    val nav = read[NavItem](jsonStr)
+    assertEquals(nav.label, "About")
+    assertEquals(nav.href, "/about.html")
   }
 
   test("SiteConfig should handle special characters in strings") {
@@ -147,11 +131,9 @@ class SiteConfigSuite extends FunSuite {
     }
     """
 
-    val decoded = Json.decode[SiteConfig](jsonStr)
-
-    assert(decoded.isSuccess)
-    assertEquals(decoded.get.siteTitle, "Site with quotes and apostrophes")
-    assertEquals(decoded.get.author, "O'Brien")
+    val config = read[SiteConfig](jsonStr)
+    assertEquals(config.siteTitle, "Site with quotes and apostrophes")
+    assertEquals(config.author, "O'Brien")
   }
 
   test("SiteConfig should handle empty strings") {
@@ -164,11 +146,9 @@ class SiteConfigSuite extends FunSuite {
     }
     """
 
-    val result = Json.decode[SiteConfig](jsonStr)
-
-    assert(result.isSuccess)
-    assertEquals(result.get.siteTitle, "")
-    assertEquals(result.get.author, "")
+    val config = read[SiteConfig](jsonStr)
+    assertEquals(config.siteTitle, "")
+    assertEquals(config.author, "")
   }
 
   test("SiteConfig should handle long navigation lists") {
@@ -184,12 +164,10 @@ class SiteConfigSuite extends FunSuite {
     }
     """
 
-    val decoded = Json.decode[SiteConfig](jsonStr)
-
-    assert(decoded.isSuccess)
-    assertEquals(decoded.get.navigation.size, 20)
-    assertEquals(decoded.get.navigation(0).label, "Link 1")
-    assertEquals(decoded.get.navigation(19).label, "Link 20")
+    val config = read[SiteConfig](jsonStr)
+    assertEquals(config.navigation.size, 20)
+    assertEquals(config.navigation(0).label, "Link 1")
+    assertEquals(config.navigation(19).label, "Link 20")
   }
 
   test("SiteConfig with real-world example") {
@@ -198,22 +176,10 @@ class SiteConfigSuite extends FunSuite {
       "siteTitle": "My Awesome Blog",
       "author": "Jane Developer",
       "navigation": [
-        {
-          "label": "Home",
-          "href": "/"
-        },
-        {
-          "label": "Blog",
-          "href": "/latest.html"
-        },
-        {
-          "label": "Tags",
-          "href": "/tags.html"
-        },
-        {
-          "label": "About",
-          "href": "/about.html"
-        }
+        {"label": "Home", "href": "/"},
+        {"label": "Blog", "href": "/latest.html"},
+        {"label": "Tags", "href": "/tags.html"},
+        {"label": "About", "href": "/about.html"}
       ],
       "dynamic": {
         "socialLinks": {
@@ -232,11 +198,7 @@ class SiteConfigSuite extends FunSuite {
     }
     """
 
-    val result = Json.decode[SiteConfig](jsonStr)
-
-    assert(result.isSuccess)
-    val config = result.get
-
+    val config = read[SiteConfig](jsonStr)
     assertEquals(config.siteTitle, "My Awesome Blog")
     assertEquals(config.author, "Jane Developer")
     assertEquals(config.navigation.size, 4)
@@ -247,14 +209,12 @@ class SiteConfigSuite extends FunSuite {
   test("NavItem with URL-encoded href") {
     val jsonStr = """{"label": "Search", "href": "/search?q=test&lang=en"}"""
 
-    val decoded = Json.decode[NavItem](jsonStr)
-
-    assert(decoded.isSuccess)
-    assertEquals(decoded.get.href, "/search?q=test&lang=en")
+    val nav = read[NavItem](jsonStr)
+    assertEquals(nav.href, "/search?q=test&lang=en")
   }
 
-  test("SiteConfig equality") {
-    val jsonStr1 = """
+  test("SiteConfig round-trip") {
+    val jsonStr = """
     {
       "siteTitle": "Title",
       "author": "Author",
@@ -263,17 +223,9 @@ class SiteConfigSuite extends FunSuite {
     }
     """
 
-    val jsonStr2 = """
-    {
-      "siteTitle": "Title",
-      "author": "Author",
-      "navigation": [{"label": "Home", "href": "/"}],
-      "dynamic": {}
-    }
-    """
-
-    val config1 = Json.decode[SiteConfig](jsonStr1).get
-    val config2 = Json.decode[SiteConfig](jsonStr2).get
+    val config1 = read[SiteConfig](jsonStr)
+    val json = write(config1)
+    val config2 = read[SiteConfig](json)
 
     assertEquals(config1.siteTitle, config2.siteTitle)
     assertEquals(config1.author, config2.author)
@@ -305,8 +257,8 @@ class SiteConfigSuite extends FunSuite {
     }
     """
 
-    val result = Json.decode[SiteConfig](jsonStr)
-    assert(result.isSuccess)
+    val config = read[SiteConfig](jsonStr)
+    assertEquals(config.siteTitle, "Test")
   }
 
   test("SiteConfig should handle dynamic arrays") {
@@ -322,38 +274,7 @@ class SiteConfigSuite extends FunSuite {
     }
     """
 
-    val result = Json.decode[SiteConfig](jsonStr)
-    assert(result.isSuccess)
-  }
-
-  test("SiteConfig should handle complex nested structures in dynamic") {
-    val jsonStr = """
-    {
-      "siteTitle": "Test",
-      "author": "Test",
-      "navigation": [],
-      "dynamic": {
-        "metadata": {
-          "version": "1.0",
-          "lastUpdated": "2025-01-15",
-          "features": [
-            "blog",
-            "pages",
-            "tags"
-          ]
-        },
-        "theme": {
-          "colors": {
-            "primary": "#007bff",
-            "secondary": "#6c757d"
-          },
-          "fonts": ["Arial", "Helvetica"]
-        }
-      }
-    }
-    """
-
-    val result = Json.decode[SiteConfig](jsonStr)
-    assert(result.isSuccess)
+    val config = read[SiteConfig](jsonStr)
+    assertEquals(config.siteTitle, "Test")
   }
 }

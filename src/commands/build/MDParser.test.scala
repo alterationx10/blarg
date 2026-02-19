@@ -5,7 +5,7 @@ import org.commonmark.renderer.html.HtmlRenderer
 
 import scala.jdk.CollectionConverters.*
 
-class MDParserTest extends munit.FunSuite {
+class MDParserSuite extends munit.FunSuite {
 
   val parser = MDParser()
   // Renderer needs the same extensions as the parser to render extension nodes

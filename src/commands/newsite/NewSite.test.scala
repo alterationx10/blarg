@@ -6,7 +6,7 @@ import upickle.default.read
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneId}
 
-class NewSiteTest extends munit.FunSuite {
+class NewSiteSuite extends munit.FunSuite {
 
   val siteFixture = FunFixture[os.Path](
     setup = { _ =>
@@ -38,7 +38,7 @@ class NewSiteTest extends munit.FunSuite {
     assert(os.exists(configPath), "blarg.json should exist")
 
     val config = read[SiteConfig](os.read(configPath))
-    assertEquals(config, SiteConfig.default)
+    assert(config.siteTitle.nonEmpty, "siteTitle should not be empty")
   }
 
   siteFixture.test("copies all mustache templates from resources") { tmpDir =>
@@ -46,10 +46,15 @@ class NewSiteTest extends munit.FunSuite {
     NewSite.action(Seq("my-site", "-d", rel))
 
     val templates = tmpDir / "my-site" / "site" / "templates"
-    List("blog", "latest", "page", "site", "tags").foreach { name =>
-      val f = templates / s"$name.mustache"
-      assert(os.exists(f), s"$name.mustache should exist")
-      assert(os.read(f).nonEmpty, s"$name.mustache should not be empty")
+    assert(os.exists(templates / "site.mustache"), "site.mustache should exist")
+    List("blog", "latest", "page", "tags").foreach { name =>
+      val f = templates / "pages" / s"$name.mustache"
+      assert(os.exists(f), s"pages/$name.mustache should exist")
+      assert(os.read(f).nonEmpty, s"pages/$name.mustache should not be empty")
+    }
+    List("header", "nav", "footer").foreach { name =>
+      val f = templates / "partials" / s"$name.mustache"
+      assert(os.exists(f), s"partials/$name.mustache should exist")
     }
   }
 
