@@ -65,6 +65,7 @@ object Serve extends Command {
     if noTTY then {
       println(s"Press Ctrl+C to exit")
       server.main(Array.empty)
+      Thread.currentThread().join()
     } else {
       println(s"Press return to exit")
       // Start server in background thread
