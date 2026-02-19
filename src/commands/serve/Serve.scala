@@ -30,22 +30,31 @@ object Serve extends Command {
     default = Some(os.pwd / "build")
   )
 
+  val hostFlag: Flag[String] =
+    Flags.string(
+      "host",
+      "host",
+      "Set the server host. Defaults to localhost",
+      default = Some("localhost")
+    )
+
   override val description: String         = "Start an HTTP server that serves files"
   override val usage: String               = "serve -p 9000 -d ./build"
   override val examples: Seq[String]       = Seq(
     "serve",
-    "serve -p 8080",
+    "serve -p 8080 -h 0.0.0.0",
     "serve -d ./build"
   )
   override val trigger: String             = "serve"
-  override val flags: Seq[Flag[?]]         = Seq(PortFlag, DirFlag, NoTTYFlag)
+  override val flags: Seq[Flag[?]]         = Seq(PortFlag, DirFlag, NoTTYFlag, hostFlag)
   override val arguments: Seq[Argument[?]] = Seq.empty
 
   override def actionWithContext(ctx: CommandContext): Unit = {
 
-    val port  = ctx.requiredFlag(PortFlag)
+    val _port = ctx.requiredFlag(PortFlag)
     val dir   = ctx.requiredFlag(DirFlag)
     val noTTY = ctx.booleanFlag(NoTTYFlag)
+    val _host = ctx.requiredFlag(hostFlag)
 
     val routes = new cask.Routes {
       @blargFiles("/")
@@ -54,12 +63,12 @@ object Serve extends Command {
     }
 
     val server = new cask.Main {
-      override def port = ctx.requiredFlag(PortFlag)
-      override def host = "localhost"
-      override def allRoutes = Seq(routes)
+      override def port: Int    = _port
+      override def host: String = _host
+      override def allRoutes    = Seq(routes)
     }
 
-    println(s"Server started at http://localhost:$port")
+    println(s"Server started at http://$_host:$_port")
     println(s"Serving files from: $dir")
 
     if noTTY then {
