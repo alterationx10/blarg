@@ -2,8 +2,8 @@ import commands.build.Build
 import commands.gen.Gen
 import commands.newsite.NewSite
 import commands.serve.Serve
-import dev.alteration.branch.ursula.UrsulaApp
-import dev.alteration.branch.ursula.command.Command
+import ursula.UrsulaApp
+import ursula.command.Command
 
 object Main extends UrsulaApp {
 

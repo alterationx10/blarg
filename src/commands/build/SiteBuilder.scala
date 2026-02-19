@@ -1,19 +1,14 @@
 package commands.build
 
 import config.SiteConfig
-import dev.alteration.branch.friday.Json
-import dev.alteration.branch.friday.Json.*
-import dev.alteration.branch.macaroni.extensions.PathExtensions.*
-import dev.alteration.branch.mustachio.Stache.Str
-import dev.alteration.branch.mustachio.{Mustachio, Stache}
+import mustachio.Stache.Str
+import mustachio.{Mustachio, Stache}
 import org.commonmark.ext.front.matter.YamlFrontMatterVisitor
 import org.commonmark.node.{Node, Paragraph}
 import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
 import org.commonmark.renderer.markdown.MarkdownRenderer
 
-import java.nio.file.{Files, Path, StandardCopyOption}
-import java.util.Comparator
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
@@ -39,14 +34,14 @@ object SiteBuilder {
     loop(child)
   }
 
-  def apply(siteFolder: Path): SiteBuilder = new SiteBuilder {
+  def apply(siteFolder: os.Path): SiteBuilder = new SiteBuilder {
 
-    val _thisBuild: Path = siteFolder.getParent.resolve("build")
+    val _thisBuild: os.Path = siteFolder / os.up / "build"
 
     val mdParser: Parser = MDParser()
 
     val htmlRenderer: HtmlRenderer =
-      HtmlRenderer.builder().build()
+      HtmlRenderer.builder().extensions(MDParser.extensions.asJava).build()
 
     def buildTimestamp: String = java.time.Instant.now().toString
     def buildYear: Int         = java.time.Year.now().getValue
@@ -58,7 +53,7 @@ object SiteBuilder {
 
     lazy val siteConfig: SiteConfig = {
       val configPath = siteFolder / "blarg.json"
-      if !Files.exists(configPath) then {
+      if !os.exists(configPath) then {
         System.err.println(s"ERROR: Config file not found at: $configPath")
         System.err.println(
           s"Please create a blarg.json file or run 'blarg new' to create a new site."
@@ -67,7 +62,7 @@ object SiteBuilder {
         throw new RuntimeException("unreachable")
       }
 
-      Json.decode[SiteConfig](Files.readString(configPath)) match {
+      Try(upickle.default.read[SiteConfig](os.read(configPath))) match {
         case scala.util.Success(cfg) => cfg
         case scala.util.Failure(ex)  =>
           System.err.println(
@@ -94,23 +89,20 @@ object SiteBuilder {
     }
 
     override def copyStatic(): Unit = Try {
-      Files
-        .walk(siteFolder.resolve("static"))
-        .sorted(Comparator.naturalOrder())
-        .forEach { path =>
-          if Files.isDirectory(path) then
-            Files.createDirectories(
-              _thisBuild / path.relativeTo(siteFolder / "static")
-            )
+      val staticDir = siteFolder / "static"
+      if os.exists(staticDir) then {
+        os.walk(staticDir).sorted.foreach { path =>
+          val dest = _thisBuild / path.relativeTo(staticDir)
+          if os.isDir(path) then
+            os.makeDir.all(dest)
           else {
-            val destination =
-              _thisBuild / path.relativeTo(siteFolder / "static")
-            Files.copy(path, destination, StandardCopyOption.REPLACE_EXISTING)
+            os.copy(path, dest, createFolders = true, replaceExisting = true)
             // Track static file for link validation
-            val fileUrl     = "/" + destination.relativeTo(_thisBuild)
+            val fileUrl = "/" + dest.relativeTo(_thisBuild)
             staticFiles.add(fileUrl)
           }
         }
+      }
     }.recover { case ex =>
       System.err.println(
         s"WARNING: Failed to copy static files: ${ex.getMessage}"
@@ -118,25 +110,22 @@ object SiteBuilder {
     }
 
     private def buildContent(
-        sourceFolder: Path,
+        sourceFolder: os.Path,
         templateName: String,
         templateLoader: () => String,
-        urlBuilder: (Path, Path, String) => Path
+        urlBuilder: (os.Path, os.Path, String) => os.Path
     ): List[ContentContext] = {
       val contentCollection: mutable.ListBuffer[ContentContext] =
         mutable.ListBuffer.empty
 
-      if !Files.exists(sourceFolder) then return List.empty
+      if !os.exists(sourceFolder) then return List.empty
 
-      Files
-        .walk(sourceFolder)
-        .filter(p => p.toString.endsWith(".md") || Files.isDirectory(p))
-        .sorted(Comparator.naturalOrder())
-        .forEach { path =>
-          if Files.isDirectory(path) then
-            Files.createDirectories(
-              _thisBuild / path.relativeTo(sourceFolder)
-            )
+      os.walk(sourceFolder)
+        .filter(p => p.ext == "md" || os.isDir(p))
+        .sorted
+        .foreach { path =>
+          if os.isDir(path) then
+            os.makeDir.all(_thisBuild / path.relativeTo(sourceFolder))
           else {
             val siteTemplate   = contentLoader.loadSiteTemplate()
             val contentPartial = templateLoader()
@@ -149,15 +138,12 @@ object SiteBuilder {
             val frontMatter = visitor.getData.asScala.toMap
               .map((k, v) => (k -> v.asScala.toList))
 
-            val fn = path
-              .relativeTo(path.getParent)
-              .toString
-              .stripSuffix(".md")
+            val fn = path.last.stripSuffix(".md")
 
             val destination = urlBuilder(path, sourceFolder, fn)
 
-            if destination.getNameCount > 0 then
-              Files.createDirectories(destination.getParent)
+            if destination.segments.length > 0 then
+              os.makeDir.all(destination / os.up)
 
             val cctx = ContentContext(
               content = htmlRenderer.render(contentNode),
@@ -181,10 +167,7 @@ object SiteBuilder {
               Some(partials(contentPartial))
             )
 
-            Files.writeString(
-              destination,
-              siteContent
-            )
+            os.write.over(destination, siteContent)
 
             // Track generated page for link validation
             val pageUrl = "/" + destination.relativeTo(_thisBuild)
@@ -201,10 +184,11 @@ object SiteBuilder {
         () => contentLoader.loadPageTemplate(),
         (path, sourceFolder, fn) => {
           val htmlFn = fn + ".html"
-          path.relativeTo(sourceFolder).getNameCount match {
+          val relToSource = path.relativeTo(sourceFolder)
+          relToSource.segments.length match {
             case 1 => _thisBuild / htmlFn
             case _ =>
-              _thisBuild / path.relativeTo(sourceFolder).getParent / htmlFn
+              _thisBuild / (path / os.up).relativeTo(sourceFolder) / htmlFn
           }
         }
       )
@@ -249,10 +233,7 @@ object SiteBuilder {
         Some(partials(contentTemplate))
       )
 
-      Files.writeString(
-        _thisBuild / "tags.html",
-        siteContent
-      )
+      os.write(_thisBuild / "tags.html", siteContent)
 
       // Track generated page for link validation
       generatedPages.put("/tags.html", siteContent)
@@ -265,7 +246,8 @@ object SiteBuilder {
         "blog",
         () => contentLoader.loadBlogTemplate(),
         (path, sourceFolder, fn) => {
-          path.relativeTo(sourceFolder).getNameCount match {
+          val relToSource = path.relativeTo(sourceFolder)
+          relToSource.segments.length match {
             case 1 =>
               // Parse date-based filename: YYYY-MM-DD-slug.md
               fn match {
@@ -275,7 +257,7 @@ object SiteBuilder {
                   _thisBuild / s"$fn.html"
               }
             case _ =>
-              _thisBuild / path.relativeTo(sourceFolder).getParent / s"$fn.html"
+              _thisBuild / (path / os.up).relativeTo(sourceFolder) / s"$fn.html"
           }
         }
       )
@@ -303,10 +285,7 @@ object SiteBuilder {
         Some(partials(contentTemplate))
       )
 
-      Files.writeString(
-        _thisBuild / "latest.html",
-        siteContent
-      )
+      os.write(_thisBuild / "latest.html", siteContent)
 
       // Track generated page for link validation
       generatedPages.put("/latest.html", siteContent)
@@ -322,11 +301,8 @@ object SiteBuilder {
 
     override def cleanBuild(): Unit =
       Try {
-        if Files.exists(_thisBuild) then
-          Files
-            .walk(_thisBuild)
-            .sorted(Comparator.reverseOrder()) // Files before Dirs
-            .forEach(Files.deleteIfExists(_))
+        if os.exists(_thisBuild) then
+          os.remove.all(_thisBuild)
         // Clear tracking data for new build
         generatedPages.clear()
         staticFiles.clear()

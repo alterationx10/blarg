@@ -1,13 +1,8 @@
 package commands.build
 
-import dev.alteration.branch.ursula.args.{Argument, BooleanFlag, Flag, Flags}
-import dev.alteration.branch.ursula.command.{Command, CommandContext}
-import dev.alteration.branch.macaroni.runtimes.BranchExecutors
-import dev.alteration.branch.macaroni.extensions.PathExtensions.*
-
-import java.nio.file.{Files, FileSystems, Path, StandardWatchEventKinds}
-import scala.concurrent.Future
-import scala.jdk.CollectionConverters.*
+import os.*
+import ursula.args.*
+import ursula.command.{Command, CommandContext}
 
 object Build extends Command {
 
@@ -21,8 +16,8 @@ object Build extends Command {
     "dir",
     "d",
     "The path to containing the site files. Defaults to ./site",
-    default = Some(wd / "site"),
-    parser = p => wd / p.stripPrefix("/")
+    default = Some(os.pwd / "site"),
+    parser = p => os.pwd / os.RelPath(p.stripPrefix("/"))
   )
 
   override val description: String         = "Build the site"
@@ -47,51 +42,17 @@ object Build extends Command {
     sb.validateLinks()
 
     if shouldWatch then {
-      val watcher = FileSystems.getDefault.newWatchService()
-
-      // Helper function to register all directories for watching
-      def registerDirectories(): Unit = {
-        Files
-          .walk(siteFolder)
-          .filter(Files.isDirectory(_))
-          .forEach { path =>
-            path.register(
-              watcher,
-              StandardWatchEventKinds.ENTRY_CREATE,
-              StandardWatchEventKinds.ENTRY_MODIFY,
-              StandardWatchEventKinds.ENTRY_DELETE
-            )
-          }
-      }
-
-      // Initial registration
-      registerDirectories()
-
-      val bg = Future {
-        while true do {
-          try {
-            val key    = watcher.take()
-            val events = key
-              .pollEvents()
-              .asScala
-              .filterNot(_.kind() == StandardWatchEventKinds.OVERFLOW)
-            if events.nonEmpty then {
-              println(s"Rebuilding site...")
-              sb.cleanBuild()
-              sb.copyStatic()
-              sb.parseSite()
-              sb.validateLinks()
-              // Re-register directories to catch any new ones
-              registerDirectories()
-              println("Build complete!")
-            }
-            key.reset()
-          } catch {
-            case ex: Exception =>
-              System.err.println(s"ERROR during rebuild: ${ex.getMessage}")
-          }
+      os.watch.watch(
+        Seq(siteFolder),
+        onEvent = { _ =>
+          println("Rebuilding site...")
+          sb.cleanBuild()
+          sb.copyStatic()
+          sb.parseSite()
+          sb.validateLinks()
+          println("Build complete!")
         }
-      }(BranchExecutors.executionContext)
+      )
 
       println("Watching for changes. Press return to stop.")
       scala.io.StdIn.readLine()

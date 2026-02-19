@@ -1,11 +1,10 @@
 package commands.gen
 
 import commands.build.FrontMatter
-import dev.alteration.branch.macaroni.extensions.PathExtensions.*
-import dev.alteration.branch.ursula.args.{Argument, Flag}
-import dev.alteration.branch.ursula.command.Command
+import ursula.args.*
+import os.*
+import ursula.command.*
 
-import java.nio.file.{Files, Path}
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneId}
 
@@ -15,7 +14,8 @@ object FrontmatterFlag extends Flag[Path] {
   override val shortKey: String    = "fm"
   override val description: String = "Append frontmatter to an existing file"
 
-  override def parse: PartialFunction[String, Path] = str => wd / str
+  override def parse: PartialFunction[String, Path] = str =>
+    os.pwd / os.RelPath(str)
 
   override val exclusive: Option[Seq[Flag[?]]] = Some(
     Seq(
@@ -32,10 +32,10 @@ object DirFlag extends Flag[Path] {
   override val shortKey: String      = "d"
   override val description: String   =
     "The root path to generate the file in. Defaults to ./site"
-  override val default: Option[Path] = Some(wd / "site")
+  override val default: Option[Path] = Some(os.pwd / "site")
 
   override def parse: PartialFunction[String, Path] = { case str =>
-    wd / str
+    os.pwd / os.RelPath(str)
   }
 }
 
@@ -62,7 +62,7 @@ object PageFlag extends Flag[Path] {
   override val description: String = "Generate a new page"
 
   override def parse: PartialFunction[String, Path] = str =>
-    wd / str.stripPrefix("/")
+    os.pwd / os.RelPath(str.stripPrefix("/"))
 
   override val exclusive: Option[Seq[Flag[?]]] = Some(
     Seq(BlogFlag, FrontmatterFlag)
@@ -112,16 +112,13 @@ object Gen extends Command {
         sitePath <- DirFlag.parseFirstArg(args)
         newFile  <- PageFlag.parseFirstArg(args)
       } yield {
-        val destination = sitePath / "pages" / newFile.relativeTo(wd)
-        if Files.exists(destination) then
+        val destination = sitePath / "pages" / newFile.relativeTo(os.pwd)
+        if os.exists(destination) then
           println(s"Page already exists at $destination")
         else {
-          Files.createDirectories(destination.getParent)
-          val result = Files.writeString(
-            destination,
-            FrontMatter.blank().toContent
-          )
-          println(s"New page created at $result")
+          os.makeDir.all(destination / os.up)
+          os.write(destination, FrontMatter.blank().toContent)
+          println(s"New page created at $destination")
         }
       }
     }
@@ -134,11 +131,11 @@ object Gen extends Command {
         val slug        = toSlug(title)
         val name        = dtf.format(Instant.now()) + "-" + slug + ".md"
         val destination = sitePath / "blog" / name
-        if Files.exists(destination) then
+        if os.exists(destination) then
           println(s"Blog post already exists at $destination")
         else {
-          Files.createDirectories(destination.getParent)
-          Files.writeString(
+          os.makeDir.all(destination / os.up)
+          os.write(
             destination,
             FrontMatter.blank(Some(title)).toContent
           )
@@ -154,10 +151,10 @@ object Gen extends Command {
         fmPath <- FrontmatterFlag.parseFirstArg(args)
       } yield {
 
-        if Files.exists(fmPath) then {
+        if os.exists(fmPath) then {
           // TODO parse and merge
-          val current = Files.readString(fmPath)
-          Files.writeString(fmPath, FrontMatter.blank().toContent + current)
+          val current = os.read(fmPath)
+          os.write.over(fmPath, FrontMatter.blank().toContent + current)
           println(s"Frontmatter added to $fmPath")
         } else println(s"File does not exist at $fmPath")
       }

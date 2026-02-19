@@ -1,8 +1,8 @@
 package commands.build
 
 import config.{NavItem, SiteConfig}
-import dev.alteration.branch.mustachio.Stache
-import dev.alteration.branch.mustachio.Stache.{Arr, Null, Str}
+import mustachio.Stache
+import mustachio.Stache.{Arr, Null, Str}
 
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, Year, ZoneId}

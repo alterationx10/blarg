@@ -15,7 +15,7 @@ import scala.jdk.CollectionConverters.*
 
 object MDParser {
 
-  private lazy val extensionList: List[Extension] = List(
+  lazy val extensions: List[Extension] = List(
     AutolinkExtension.create(),
     StrikethroughExtension.create(),
     TablesExtension.create(),
@@ -30,7 +30,7 @@ object MDParser {
     Parser
       .builder()
       .extensions(
-        extensionList.asJava
+        extensions.asJava
       )
       .build()
   }
