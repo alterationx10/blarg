@@ -59,6 +59,34 @@ class MDParserSuite extends munit.FunSuite {
     assert(html.contains("href=\"https://example.com\""), s"Expected autolink, got: $html")
   }
 
+  test("renders mermaid code blocks as pre.mermaid") {
+    val md =
+      """```mermaid
+        |graph TD
+        |    A[Start] --> B{Error?}
+        |    B -- Yes --> C[Fix]
+        |    B -- No --> D[Yay]
+        |```
+        |""".stripMargin
+    val node = parser.parse(md)
+    val html = renderer.render(node)
+    assert(html.contains("<pre class=\"mermaid\">"), s"Expected pre.mermaid tag, got: $html")
+    assert(html.contains("graph TD"), s"Expected mermaid content, got: $html")
+    assert(!html.contains("<code"), s"Should not contain code tag for mermaid, got: $html")
+  }
+
+  test("renders non-mermaid code blocks normally") {
+    val md =
+      """```scala
+        |val x = 1
+        |```
+        |""".stripMargin
+    val node = parser.parse(md)
+    val html = renderer.render(node)
+    assert(html.contains("<code"), s"Expected code tag for scala block, got: $html")
+    assert(!html.contains("class=\"mermaid\""), s"Should not have mermaid class, got: $html")
+  }
+
   test("parses heading anchors") {
     val node = parser.parse("# My Heading")
     val html = renderer.render(node)

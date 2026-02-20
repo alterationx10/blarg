@@ -23,7 +23,8 @@ object MDParser {
     HeadingAnchorExtension.create(),
     InsExtension.create(),
     YamlFrontMatterExtension.create(),
-    ImageAttributesExtension.create()
+    ImageAttributesExtension.create(),
+    MermaidExtension.create()
   )
 
   def apply(): Parser = {
